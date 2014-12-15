@@ -11,7 +11,7 @@ int main(void){
 	Dict* d = make_dict();
 	FILE* config;
 	int file_size;
-	config  = fopen("Configs/PIE.conf","r");
+	config  = fopen("../Configs/PIE.conf","r");
 	while(add_split_to_dict(d, config)){}
 	printf("Val for key 12345 is %s\n", (char*)dict_get_val(d, "12345"));
 	printf("Val for key two is %s\n",(char*)dict_get_val(d, "two"));

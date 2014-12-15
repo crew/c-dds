@@ -12,31 +12,46 @@ Dict* make_dict(void){
 	return make_dict_with(NULL,NULL);
 }
 int dict_size(Dict* d){
-	Dict* i = d;
-	int count = 0;
+	if(d->next == NULL){
+		return 0;
+	}
+	Dict* i = d->next;
+	int count = 1;
 	while(i->next != NULL){
 		++count;
 		i = i->next;
 	}
 	return count;
 }
-void del_last(Dict* d){
+void del_last(Dict* d, int freeContents){
 	Dict* beforeLast = d;
 	Dict* index = d;
 	while(index->next != NULL){
 		beforeLast = index;
 		index = index->next;
 	}
+	if(freeContents){
+		free(index->key);
+		free(index->value);
+		index->key = NULL;
+		index->value = NULL;
+	}
 	free(index);
 	beforeLast->next = NULL;
 }
-void delete_dict(Dict* d){
+void _delete_dict(Dict* d, int freeContents){
 	int size = dict_size(d);
 	int i = 0;
 	for(i; i<size;i++){
-		del_last(d);
+		del_last(d, freeContents);
 	}
 	free(d);
+}
+void delete_dict(Dict* d){
+	_delete_dict(d, 0);
+}
+void delete_dict_and_contents(Dict* d){
+	_delete_dict(d, 1);
 }
 int dict_has_key(Dict* d, char* key){
 	return dict_get_val(d,key) != NULL;
