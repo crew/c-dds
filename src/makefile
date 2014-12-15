@@ -1,10 +1,11 @@
 CC=gcc
 OUT=run
 CFLAGS=-c
+BUILDDIR=build
 SRCS=main.c dict.c
 OBJS=$(SRCS:.c=.o)
 all : $(OBJS)
-	$(CC) $(OBJS) -o $(OUT)
+	$(CC) $(OBJS) -o ../$(BUILDDIR)/$(OUT)
 	make clean
 
 $(OBJS) : $(SRCS)
