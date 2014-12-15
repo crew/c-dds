@@ -1,5 +1,6 @@
 #include "dict.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 Dict* make_dict_with(char* key, void* value){
 	Dict* d = (Dict*) malloc(sizeof(Dict));
@@ -43,15 +44,20 @@ int dict_has_key(Dict* d, char* key){
 void* dict_get_val(Dict* d, char* key){
 	//Not sure if i can just use d as cur?
 	Dict* cur = d->next;
-	while(cur != NULL){
+	while(cur != NULL){		
 		if(!strcmp(key, cur->key)){
 			return cur->value;
 		}
+		cur = cur->next;
 	}
 	return NULL;
 }
 void* dict_put(Dict* d, char* key, void* val){
-	Dict* index = d;
+	if(d->next == NULL){
+		d->next = make_dict_with(key, val);
+		return NULL;
+	}
+	Dict* index = d->next;
 	while(index->next != NULL){
 		if(!strcmp(key, index->key)){
 			void* old = index->value;
