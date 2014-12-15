@@ -1,6 +1,15 @@
 CC=gcc
 OUT=run
-all : test
+CFLAGS=-c
+SRCS=main.c dict.c
+OBJS=$(SRCS:.c=.o)
+all : $(OBJS)
+	$(CC) $(OBJS) -o $(OUT)
+	make clean
 
-test : *.c
-	$(CC) *.c -o $(OUT) -ggdb
+$(OBJS) : $(SRCS)
+	$(CC) $(CFLAGS) $(SRCS)
+
+clean : 
+	rm -rf $(OBJS)
+
