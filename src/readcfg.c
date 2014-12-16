@@ -32,6 +32,7 @@ Dict* readConfig(const char* path){
 	FILE* f = fopen(path, "r");
 	Dict* d = make_dict();
 	while(add_split_to_dict(d, f)){}
+	fclose(f);
 	return d;
 }
 int add_split_to_dict(Dict* d, FILE* f){
