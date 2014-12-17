@@ -137,6 +137,16 @@ char *message_to_json(socket_message *msg) {
     return cJSON_Print(root);
 }
 
+int main(){
+    socket_message *sm = json_to_message(json_string);
+    #define DT_BUF_SIZE 27
+    char dt[DT_BUF_SIZE];
+    strftime(dt, sizeof(dt), "%Y-%m-%dT%H:%M:%S%z", sm->datetime);
+    printf("sm:\ndatetime:%s\naction:%s\npies:\n\t(name: %s)\n\t(name: %s)\ncontent:\n\tid: %d\n...\n",
+            dt, action_string(sm->action), sm->pie_list[0]->name, sm->pie_list[1]->name, sm->content->id);
+    printf("back again:\n%s",message_to_json(sm));
+    //printf("sm:\naction:%s\npies:\n\t(name: %s)\n\t(name: %s)\ncontent:\n\tid: %d\n...\n", action_string(sm->action), sm->pie_list[0]->name, sm->pie_list[1]->name, sm->content->id);
+}
 
 
 
