@@ -6,9 +6,6 @@
 #include "cJSON.h"
 #include "parseJSON.h"
 
-
-//char json_string[] = "{\"datetime\" : \"2014-11-30T22:04:15+0000\",\"action\" : \"add-slide\",\"pies\" : [{ \"name\" : \"shepard\" },{ \"name\" : \"blueberry\" }],\"content\"  : {\"ID\" : 14,\"Permalink\" : \"http://dds-wp...\", \"meta\" : {\"key1\" : [ \"value\" ],\"key2\" : [\"value1\",\"value2\",3,{\"meta can be weird\" : \"remember that\"}]}}}";
-
 slide_action parse_action(char *str) {
     if (~strcmp(str, "add-slide")) {
         return ADD_SLIDE;
@@ -123,6 +120,7 @@ socket_message *json_to_message(char *str) {
 }
 
 char *message_to_json(socket_message *msg) {
+
     cJSON *root, *content;
     root = cJSON_CreateObject();
     char datetime[27];
@@ -135,17 +133,6 @@ char *message_to_json(socket_message *msg) {
     cJSON_AddStringToObject(content, "Permalink", msg->content->permalink);
     cJSON_AddItemToObject(content, "meta", msg->content->meta);
     return cJSON_Print(root);
-}
-
-int main(){
-    socket_message *sm = json_to_message(json_string);
-    #define DT_BUF_SIZE 27
-    char dt[DT_BUF_SIZE];
-    strftime(dt, sizeof(dt), "%Y-%m-%dT%H:%M:%S%z", sm->datetime);
-    printf("sm:\ndatetime:%s\naction:%s\npies:\n\t(name: %s)\n\t(name: %s)\ncontent:\n\tid: %d\n...\n",
-            dt, action_string(sm->action), sm->pie_list[0]->name, sm->pie_list[1]->name, sm->content->id);
-    printf("back again:\n%s",message_to_json(sm));
-    //printf("sm:\naction:%s\npies:\n\t(name: %s)\n\t(name: %s)\ncontent:\n\tid: %d\n...\n", action_string(sm->action), sm->pie_list[0]->name, sm->pie_list[1]->name, sm->content->id);
 }
 
 
