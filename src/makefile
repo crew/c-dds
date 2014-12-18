@@ -2,7 +2,7 @@ CC=gcc
 OUT=run
 CFLAGS=-c
 BUILDDIR=build
-SRCS=main.c dict.c readcfg.c parseJSON.c cJSON.c
+SRCS=main.c dict.c readcfg.c parseJSON.c cJSON.c ddsmsgqueue.c
 ENDARGS=-lrt -lm
 OBJS=$(SRCS:.c=.o)
 all : $(OBJS)

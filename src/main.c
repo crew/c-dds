@@ -1,12 +1,22 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+
 #include "dict.h"
-#include "readcfg.h" 
+#include "readcfg.h"
+#include "ddsmsgqueue.h"
+
+#define KEY_PATH "/home/pi/c-dds/src/main.c"
 int main(void){
+	int qid = get_q_id(KEY_PATH, 'd');
 	Dict* d = readConfig("../Configs/PIE.conf");
-	printf("Val for key 12345 is %s\n", (char*)dict_get_val(d, "12345"));
-	printf("Val for key two is %s\n",(char*)dict_get_val(d, "two"));
+
+	
+
+
+
+
+
+
+	destroy_q(qid);
+	//Deallocates the dictionary
 	delete_dict_and_contents(d);
 }
 
