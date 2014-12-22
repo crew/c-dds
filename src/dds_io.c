@@ -1,30 +1,115 @@
 #include "dds_io.h"
+typedef struct _dds_sock{
+	int fd;
+	int bytes;
+	int msgs;
+	char* data;
+}_dds_sock;
+
+
+
+//prrforms a read, allows blocking for entire message
+int read_b(dds_sock s){
+	//TODO Needs to append any read data to data, checks for end msg and marks msgs, also needs to update bytes
+}
+//performs a read, does not allow blocking
+int read_db(dds_sock s);
+
+
+
+
+//returns 1 if the sock has a complete message
+int msg_complete(dds_sock s){
+	return s->msgs > 0;
+}
+
+//Gets the number of messages that have been read (or have read in progress read) and not retrieved
+int get_msg_count(dds_sock s){
+	return s->msgs;
+}
+
+//Does this socket have an in progress read?
+int msg_in_progress(dds_sock s){
+	//NOTE are message terminating convention is to have \v at the end of a message
+	return s->data[s->bytes - 1] == DDS_END_MSG;
+}
+int get_first_end_index(char* c, int len){
+	int index = 0;
+	while(c[index++] != DDS_END_MSG){
+		if(index >= len)
+			return -1;
+	}
+	return --index;
+}
+int replace_first_end(char* c, int len){
+	int f = get_first_end_index(c, len);
+	if(f == -1){
+		return 0;
+	}
+
+	c[f] = '\0';
+	return 1;
+}
+//Message must be done beaing read, or will return -1
+//Acts like a FIFO queue in the case there are multiple messages
+//REmoves the given message from the sock's internals so that the next call
+//will provide a different message
+//buff must be big enough to accomidate the entire message
+int get_msg(dds_sock s, char* buff){
+	if(s->msgs <= 0)
+		return 0;
+	replace_first_end(s->data, s-> bytes);
+	int msg_len = strlen(s->data)+1;
+	int rest_len = s->bytes - msg_len;
+	strcpy(buff, s->data);
+	char* ndata = (char*)malloc(rest_len);
+	memcpy(ndata, s->data+msg_len, rest_len);
+	free(s->data);
+	s->data = ndata;
+	s->bytes = rest_len;
+	--s->msgs;
+
+	return 1;
+}
+
+//Gets the size (in bytes) of the next msg in this socket (or -1 if it hasn't been completed yet)
+int get_nxt_msg_size(dds_sock s){
+	int l = get_first_end_index(s->data, s->bytes);
+	if(l == -1)
+		return -1;
+	else
+		return l+1;
+}
+
+
+
 void err_quit(const char* str){
 	fprintf(stderr, "%s\n%s\n",str, strerror(errno));
 	exit(errno);
 }
-int write_s(dds_sock s, const char* str, int flags){
-	int tot = 0;
-	int need = strlen(str)+1;
-	int bytes = send(s, str, need, flags);
+//int read_s(dds_sock s, 
+int write_s(dds_sock s, const char* str, int size, int flags){
+	int bytes = send(s->fd, str, size, flags);
 	if(bytes == -1){
 		perror("send");
 		exit(errno);
 	}
 	return bytes;
 }
-int write_sb(dds_sock s, const char* str){
-	return write_s(s,str, 0);
+int write_sb(dds_sock s, const char* str, int size){
+	return write_s(s,str, 0, size);
 }
-int write_snb(dds_sock s, const char* str){
-	return write_s(s, str, MSG_DONTWAIT);
+int write_snb(dds_sock s, const char* str, int size){
+	return write_s(s, str, MSG_DONTWAIT, size);
 }
 
 int net_order(int i){
 	return htonl(i);
 }
 int close_connection(dds_sock sock){
-	int err = close(sock);
+	int err = close(sock->fd);
+	free(sock->data);
+	free(sock);
 	if(!err)
 		return 0;
 	perror("close");
@@ -49,7 +134,12 @@ dds_sock make_dds_socket(){
 		perror("socket");
 		err_quit("Falied to create a dds_socket\n");
 	}
-	return fd;
+	dds_sock sock = (_dds_sock*)malloc(sizeof(_dds_sock));
+	sock->bytes = 0;
+	sock->data = NULL;
+	sock->msgs = 0;
+	sock->fd = fd;
+	return sock;
 }
 
 dds_sock open_connection(char* addr, char* port){
@@ -73,30 +163,29 @@ dds_sock open_connection(char* addr, char* port){
 
 	err = getaddrinfo(addr, port, &hint_struct, &addrlist);
 	if(err!=0){
-		close(sock);
+		close_connection(sock);
 		err_quit(gai_strerror(err));
 	}
 	for(index = addrlist;index != NULL;index = index->ai_next){
 		print_addr_info(index);
 	}
-	err = bind(sock, addrlist->ai_addr, addrlist->ai_addrlen);
+	err = bind(sock->fd, addrlist->ai_addr, addrlist->ai_addrlen);
 	if(err == -1){
 		perror("bind");
-		close(sock);
+		close_connection(sock);
 		err_quit("socket bind failed ...\n");
 	}
 
 
 
-	err = connect(sock, addrlist->ai_addr, addrlist->ai_addrlen);
+	err = connect(sock->fd, addrlist->ai_addr, addrlist->ai_addrlen);
 	if(err == -1){
 		perror("connect");
-		close(sock);
+		close_connection(sock);
 		err_quit("Socket connect failed...%d\n");
 	}
 
 	//TO free everything
-	printf("Freeing list \n");
 	freeaddrinfo(addrlist);
 	
 	return sock;

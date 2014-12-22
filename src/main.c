@@ -30,12 +30,12 @@ int main(void){
 	char buf[256];
 	printf("Attemping to recieve from socket...\n");
 
-	int bytes = recv(sock, buf, sizeof(buf), 0);
-	printf("Recieved message with %d bytes\n", bytes);
-	if(bytes == -1){
-		perror("recv");
-	}
-	printf("The message was : %s\n", buf);
+	//int bytes = recv(sock, buf, sizeof(buf), 0);
+	//printf("Recieved message with %d bytes\n", bytes);
+	//if(bytes == -1){
+//		perror("recv");
+	//}
+	//printf("The message was : %s\n", buf);
 
 	close_connection(sock);
 }
