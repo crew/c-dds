@@ -1,6 +1,7 @@
 #include <pthread.h>
 
 #include <unistd.h>
+#include "dds_io.h"
 #include "dds_gtk.h"
 #include "dict.h"
 #include "readcfg.h"
