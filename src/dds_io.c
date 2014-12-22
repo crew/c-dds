@@ -3,6 +3,22 @@ void err_quit(const char* str){
 	fprintf(stderr, "%s\n%s\n",str, strerror(errno));
 	exit(errno);
 }
+int write_s(dds_sock s, const char* str, int flags){
+	int tot = 0;
+	int need = strlen(str)+1;
+	int bytes = send(s, str, need, flags);
+	if(bytes == -1){
+		perror("send");
+		exit(errno);
+	}
+	return bytes;
+}
+int write_sb(dds_sock s, const char* str){
+	return write_s(s,str, 0);
+}
+int write_snb(dds_sock s, const char* str){
+	return write_s(s, str, MSG_DONTWAIT);
+}
 
 int net_order(int i){
 	return htonl(i);
@@ -18,9 +34,9 @@ int host_order(int i){
 	return ntohl(i);
 }
 void print_addr_info(struct addrinfo *info){
-	struct sockaddr *sockaddr = info->ai_addr;
+	struct sockaddr_in *sockaddr = (struct sockaddr_in *)info->ai_addr;
 	char buf[512];
-	const char* addr = inet_ntop(AF_INET, &info->ai_addr->sa_data, buf, 512);
+	const char* addr = inet_ntop(AF_INET, &sockaddr->sin_addr, buf, 512);
 	if(addr == NULL){
 		printf("Something went wrong... no host address\n");
 		perror("inet_ntop");
@@ -37,6 +53,7 @@ dds_sock make_dds_socket(){
 }
 
 dds_sock open_connection(char* addr, char* port){
+	printf("Attempting to connect to %s:%s\n", addr, port);
 	int err;
 	dds_sock sock;
 	struct addrinfo *index;
@@ -59,14 +76,14 @@ dds_sock open_connection(char* addr, char* port){
 		close(sock);
 		err_quit(gai_strerror(err));
 	}
-
-	print_addr_info(addrlist);
-
+	for(index = addrlist;index != NULL;index = index->ai_next){
+		print_addr_info(index);
+	}
 	err = bind(sock, addrlist->ai_addr, addrlist->ai_addrlen);
 	if(err == -1){
 		perror("bind");
 		close(sock);
-		err_quit("socket bind failed ...%d\n");
+		err_quit("socket bind failed ...\n");
 	}
 
 
@@ -79,9 +96,9 @@ dds_sock open_connection(char* addr, char* port){
 	}
 
 	//TO free everything
-	for(index = addrlist;index != NULL; index = index->ai_next){
-		freeaddrinfo(index);
-	}
+	printf("Freeing list \n");
+	freeaddrinfo(addrlist);
+	
 	return sock;
 }
 

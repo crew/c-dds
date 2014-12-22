@@ -19,7 +19,11 @@ int host_order(int);
 
 dds_sock open_connection(char* addr, char* port);
 int close_connection(dds_sock);
-int write_s(dds_sock sock, int size, char* str);
+//Writes the given string to the socket, gives a non-blocking flag, this call will not block
+int write_sb(dds_sock sock, const char* str);
+//Writes the string to the socket, allows blocking
+int write_snb(dds_sock sock, const char* str);
+
 int write_int(dds_sock sock, int val);
 
 void err_quit(const char* str);

@@ -18,19 +18,26 @@ void* gtk_thread(void* arg){
 
 }
 int main(void){
-	pthread_t gtk_main_thread;
-	Dict* d = readConfig("../Configs/PIE.conf");
+	dds_sock sock = open_connection("192.168.11.126","7778");
+	char* str = "Hello World!";
+	//ssize_t bytes = 0;
+	printf("Sending message!\n");
+	write_s(sock, str);
+	//bytes = send(sock,str, strlen(str)+1, 0);
+	printf("Message sent!\n");
 
-	WebKitWebView* view = make_view((char*)dict_get_val(d, "init_page"));	
-	pthread_create(&gtk_main_thread, NULL, gtk_thread, (void*) view);
-	gtk_main();
-	//webkit_web_view_load_uri(view, "http://facebook.com");
-	//printf("Right before the sleep...\n");
-	//sleep(10);
-	//printf("Right after the sleep...\n");
-	//Deallocates the dictionary
-	delete_dict_and_contents(d);
 
+	char buf[256];
+	printf("Attemping to recieve from socket...\n");
+
+	int bytes = recv(sock, buf, sizeof(buf), 0);
+	printf("Recieved message with %d bytes\n", bytes);
+	if(bytes == -1){
+		perror("recv");
+	}
+	printf("The message was : %s\n", buf);
+
+	close_connection(sock);
 }
 
 
