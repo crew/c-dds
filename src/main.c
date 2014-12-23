@@ -8,17 +8,51 @@
 #include "ddsmsgqueue.h"
 #include "dds_gtk.h"
 #define KEY_PATH "/home/pi/c-dds/src/main.c"
-void* gtk_thread(void* arg){
-	WebKitWebView* view = (WebKitWebView*)arg;
-	sleep(10);
-	printf("Switching pages...\n");
-	gdk_threads_enter();
-	webkit_web_view_load_uri(view, "http://facebook.com");
-	gdk_threads_leave();
 
+
+
+//Should be assigned a shared memory address
+char* url_to_display;
+WebKitWebView* view;
+gboolean gtk_update_page(void* args){
+	printf("Switching pages...\n");
+	webkit_web_view_load_uri(view, url_to_display);
+	return TRUE;
 }
 int main(int argc, char** argv){		
-	dds_sock sock = open_connection(argv[1],argv[2]);
+	Dict* d = readConfig("../Configs/PIE.conf");
+	key_t key = ftok(KEY_PATH, 's');
+	if(key == -1){
+		perror("ftok");
+		exit(1);
+	}
+	int shmid = shmget(key, 1024, 0666 | IPC_CREAT);
+	if(shmid == -1){
+		perror("shmget");
+		exit(1);
+	}
+	url_to_display = (char*)shmat(shmid, (void*)0, 0);
+	
+	
+	
+	strcpy(url_to_display,(char*)dict_get_val(d, "init_page"));
+	printf("Initial display is %s\n",url_to_display);
+	view = make_view(url_to_display);
+	if(!fork){
+		g_timeout_add(1000,(GSourceFunc) gtk_update_page, NULL);
+		gtk_main();
+	}else{
+		printf("Waiting for 20 seconds...\n");
+		sleep(20);
+		strcpy(url_to_display, "http://facebook.com/");
+		printf("Switched url... page should update in ~1sec max\n");
+		wait(NULL);	
+	}
+
+	
+	
+	
+	/*dds_sock sock = open_connection(argv[1],argv[2]);
 	char* str = "Hello World!\v2\v";
 	printf("Sending message!\n");
 	int send_return = write_sb(sock, str, strlen(str)+1);
@@ -54,6 +88,7 @@ int main(int argc, char** argv){
 	printf("Got message %s\n", buf);
 	free(buf);
 	close_connection(sock);
+	*/
 }
 
 
