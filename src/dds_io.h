@@ -13,8 +13,15 @@
 
 #define TRY_COUNT 5
 #define DDS_END_MSG '\v'
-extern struct _dds_sock;
-typedef struct _dds_sock*  dds_sock;
+typedef struct _dds_sock{
+	int fd;
+	int bytes;
+	int msgs;
+	char* data;
+}_dds_sock;
+
+
+typedef _dds_sock*  dds_sock;
 
 int net_order(int);
 int host_order(int);
@@ -44,9 +51,9 @@ int get_msg(dds_sock s, char* buff);
 //Gets the size (in bytes) of the next msg in this socket (or -1 if it hasn't been completed yet)
 int get_nxt_msg_size(dds_sock);
 //prrforms a read, allows blocking for entire message
-int read_b(dds_sock s);
+int read_b(dds_sock s, int amt);
 //performs a read, does not allow blocking
-int read_db(dds_sock s);
+int read_db(dds_sock s, int amt);
 
 
 void err_quit(const char* str);
