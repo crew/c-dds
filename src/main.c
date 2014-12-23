@@ -15,8 +15,16 @@
 char* url_to_display;
 WebKitWebView* view;
 gboolean gtk_update_page(void* args){
-	printf("Switching pages...\n");
-	webkit_web_view_load_uri(view, url_to_display);
+	char* arg = (char*)args;
+	if(strcmp(url_to_display, arg)){
+		//printf("Switching pages...\n");
+		webkit_web_view_load_uri(view, url_to_display);
+		int i;
+		for(i = 0;i < strlen(url_to_display)+1;++i){
+			arg[i] = url_to_display[i];
+		}
+
+	}
 	return TRUE;
 }
 int main(int argc, char** argv){		
@@ -38,14 +46,29 @@ int main(int argc, char** argv){
 	strcpy(url_to_display,(char*)dict_get_val(d, "init_page"));
 	printf("Initial display is %s\n",url_to_display);
 	view = make_view(url_to_display);
-	if(!fork){
-		g_timeout_add(1000,(GSourceFunc) gtk_update_page, NULL);
+	if(!fork()){
+		char arg[1024];
+		arg[0] = '\0';
+		g_timeout_add(1000,(GSourceFunc) gtk_update_page, (void*)arg);
 		gtk_main();
+		exit(0);
+		
 	}else{
-		printf("Waiting for 20 seconds...\n");
-		sleep(20);
-		strcpy(url_to_display, "http://facebook.com/");
-		printf("Switched url... page should update in ~1sec max\n");
+		char buf[1024];
+		printf("Hello I'll be doing your page switching today (I also happen to be running in a different process as gtk :D)\n");
+
+		while(1){
+			printf("Please give me a url to navigate to (don't make it longer then 1024 char's)\n");
+			printf("Type exit to terminate...\n");
+			scanf("%s", buf);
+			if(!strcmp("exit",buf)){
+				break;
+			}
+			printf("Alright im going to switch the window to %s\n", buf);
+			strcpy(url_to_display, buf);
+		}
+		printf("Alright now im waiting for gtk to exit...\n");
+
 		wait(NULL);	
 	}
 
