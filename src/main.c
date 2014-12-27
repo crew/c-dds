@@ -10,26 +10,29 @@
 #include "dds_gtk.h"
 #include "dds_sem.h"
 #define KEY_PATH "/home/pi/c-dds/src/main.c"
+#define MAX_URL_LEN 1024
 
+typedef struct _dds_gtk_args{
+	dds_sem lock;
+	WebKitWebView* view;
+	char* cur_url;
+	char previous_url[MAX_URL_LEN];
+}timeout_args;
 
-
-//Should be assigned a shared memory address
-char* url_to_display;
-WebKitWebView* view;
-dds_sem lock;
-gboolean gtk_update_page(void* args){
-	char* arg = (char*)args;
-	try_dds_sem(lock);
-	if(strcmp(url_to_display, arg)){
-		webkit_web_view_load_uri(view, url_to_display);
-		strcpy(url_to_display, arg);
-
+gboolean gtk_update_page(void* arg_void){
+	timeout_args* arg_struct = (timeout_args*)arg_void;
+	try_dds_sem(arg_struct->lock);
+	if(strcmp(arg_struct->cur_url, arg_struct->previous_url)){
+		webkit_web_view_load_uri(arg_struct->view, arg_struct->cur_url);
+		if(strlen(arg_struct->cur_url) > MAX_URL_LEN){
+			arg_struct->cur_url[MAX_URL_LEN] = '\0';	
+		}
+		strcpy(arg_struct->previous_url, arg_struct->cur_url);
 	}
-	release_dds_sem(lock);
+	release_dds_sem(arg_struct->lock);
 	return TRUE;
 }
-int main(int argc, char** argv){		
-	Dict* d = readConfig("../Configs/PIE.conf");
+void* make_shmmem(timeout_args* t){
 	key_t key = ftok(KEY_PATH, 's');
 	if(key == -1){
 		perror("ftok");
@@ -40,16 +43,21 @@ int main(int argc, char** argv){
 		perror("shmget");
 		exit(1);
 	}
-	url_to_display = (char*)shmat(shmid, (void*)0, 0);
-	
-	lock = dds_open_sem("/dds_gtk_sem", 1);
-	strcpy(url_to_display,(char*)dict_get_val(d, "init_page"));
-	printf("Initial display is %s\n",url_to_display);
-	view = make_view(url_to_display);
+	return shmat(shmid, (void*)0, 0);
+}
+//TODO connect termination signal to free ALL the shit
+int main(int argc, char** argv){
+	dds_sem lock = dds_open_sem("/dds_gtk_sem", 1);	
+	Dict* d = readConfig("../Configs/PIE.conf");
+	timeout_args *targs = (timeout_args*)malloc(sizeof(timeout_args));
+	targs->cur_url= (char*)make_shmmem(targs);
+	targs->previous_url[0] = '\0';
+	targs->lock = lock;
+	strcpy(targs->cur_url,(char*)dict_get_val(d, "init_page"));
+	targs->view = make_view(targs->cur_url);
+	printf("Initial display is %s\n", targs->cur_url);
 	if(!fork()){
-		char arg[1024];
-		arg[0] = '\0';
-		g_timeout_add(1000,(GSourceFunc) gtk_update_page, (void*)arg);
+		g_timeout_add(1000,(GSourceFunc) gtk_update_page, (void*)targs);
 		gtk_main();
 		exit(0);
 		
@@ -66,7 +74,7 @@ int main(int argc, char** argv){
 			}
 			printf("Alright im going to switch the window to %s\n", buf);
 			try_dds_sem(lock);
-			strcpy(url_to_display, buf);
+			strcpy(targs->cur_url, buf);
 			release_dds_sem(lock);
 
 		}
