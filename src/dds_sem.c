@@ -1,6 +1,6 @@
 #include "dds_sem.h" 
 dds_sem dds_open_sem(const char* name, int value){
-	if(*name != '\\'){
+	if(*name != '/'){
 		printf("WARNING: %s does not follow semaphore naming conventions...\n", name);
 	}
 	dds_sem dsem = (dds_sem)malloc(sizeof(_dds_sem));
