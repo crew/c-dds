@@ -14,5 +14,5 @@ $(OBJS) : $(SRCS)
 	$(CC) $(CFLAGS) $(SRCS)
 
 clean : 
-	rm -rf $(OBJS)
-
+	rm -rf $(OBJS) ddsmsgqueue.o
+	rm -rf *.h.gch

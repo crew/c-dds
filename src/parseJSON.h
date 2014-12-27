@@ -5,18 +5,31 @@
 #include "cJSON.h"
 #endif
 
+#ifndef DICT_H
+#include "dict.h"
+#endif
+
 typedef enum {
     ADD_SLIDE, DELETE_SLIDE, EDIT_SLIDE, TERMINATE
 } slide_action;
+
+typedef enum {
+    T_INT, T_CHAR, T_POINT_INT, T_POINT_CHAR, T_POINT_VOID, T_ARR, T_DICT
+} META_TYPE;
 
 typedef struct pie_struct {
     char *name;
 } pie;
 
+typedef struct m_meta_struct{
+    void *value;
+    META_TYPE type;
+} socket_meta;
+
 typedef struct m_content_struct {
     int id;
     char *permalink;
-    cJSON *meta;
+    Dict *meta;
 } socket_message_content;
 
 typedef struct m_root_struct {

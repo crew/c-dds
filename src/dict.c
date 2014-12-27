@@ -2,11 +2,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
+
 Dict* make_dict_with(char* key, void* value){
 	Dict* d = (Dict*) malloc(sizeof(Dict));
 	d->key = key;
 	d->value = value;
 	d->next = NULL;
+	return d;
 }
 Dict* make_dict(void){
 	return make_dict_with(NULL,NULL);
@@ -54,18 +57,29 @@ void delete_dict_and_contents(Dict* d){
 	_delete_dict(d, 1);
 }
 int dict_has_key(Dict* d, char* key){
-	return dict_get_val(d,key) != NULL;
+	return DICT_GET_VAL(d,key,"\0") != NULL;
 }
-void* dict_get_val(Dict* d, char* key){
+void* DICT_GET_VAL(Dict* d, char* key, ...){
 	//Not sure if i can just use d as cur?
+	if (d == NULL){return NULL;}
 	Dict* cur = d->next;
+	void *ret = NULL;
+	va_list arguments;
+	char *k;
 	while(cur != NULL){		
 		if(!strcmp(key, cur->key)){
-			return cur->value;
+			ret = cur->value;
+			break;
 		}
 		cur = cur->next;
 	}
-	return NULL;
+	va_start(arguments,key);
+	while(((k = va_arg(arguments, char *)) != NULL) && (k[0] != '\0')){
+		void *temp = DICT_GET_VAL(((Dict *)ret),k);
+		ret = (temp == NULL) ? ret : temp;
+	}
+	va_end(arguments);
+	return ret;
 }
 void* dict_put(Dict* d, char* key, void* val){
 	if(d->next == NULL){
@@ -97,4 +111,26 @@ int dict_remove_entry(Dict* d, char* key){
 		index = index->next;
 	}
 	return 0;
+}
+
+char *dump_rest(Dict *d){
+	if(d == NULL){
+		return "}\n";
+	}
+	char *ret;
+	ret = malloc(80 * sizeof(char));
+	sprintf(ret, "\t%s\t:\t%s,\n", d->key, (char *)d->value);
+	strcat(ret, dump_rest(d->next));
+	return ret;
+}
+
+char *dump_dict(Dict *d){
+	char *ret, *app;
+	app = dump_rest(d);
+	ret = malloc((2 * sizeof(char)) + sizeof(app));
+	*ret = '{';
+	*(ret+1) = '\n';
+	*(ret+2) = '\0';
+	strcat(ret, dump_rest(d));
+	return ret;
 }

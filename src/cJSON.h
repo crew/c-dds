@@ -27,7 +27,7 @@
 extern "C"
 {
 #endif
-
+#include <stddef.h>
 /* cJSON Types: */
 #define cJSON_False 0
 #define cJSON_True 1
@@ -132,6 +132,13 @@ extern void cJSON_Minify(char *json);
 #define cJSON_AddBoolToObject(object,name,b)	cJSON_AddItemToObject(object, name, cJSON_CreateBool(b))
 #define cJSON_AddNumberToObject(object,name,n)	cJSON_AddItemToObject(object, name, cJSON_CreateNumber(n))
 #define cJSON_AddStringToObject(object,name,s)	cJSON_AddItemToObject(object, name, cJSON_CreateString(s))
+
+#define cJSON_AddNullToArray(array)		cJSON_AddItemToArray(array, cJSON_CreateNull())
+#define cJSON_AddTrueToArray(array)		cJSON_AddItemToArray(array, cJSON_CreateTrue())
+#define cJSON_AddFalseToArray(array)		cJSON_AddItemToArray(array, cJSON_CreateFalse())
+#define cJSON_AddBoolToArray(array,b)	cJSON_AddItemToArray(array, cJSON_CreateBool(b))
+#define cJSON_AddNumberToArray(array,n)	cJSON_AddItemToArray(array, cJSON_CreateNumber(n))
+#define cJSON_AddStringToArray(array,s)	cJSON_AddItemToArray(array, cJSON_CreateString(s))
 
 /* When assigning an integer value, it needs to be propagated to valuedouble too. */
 #define cJSON_SetIntValue(object,val)			((object)?(object)->valueint=(object)->valuedouble=(val):(val))
