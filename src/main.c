@@ -1,12 +1,14 @@
 #include <pthread.h>
-
+#include <sys/ipc.h>
 #include <unistd.h>
+#include <sys/shm.h>
+
 #include "dds_io.h"
 #include "dds_gtk.h"
 #include "dict.h"
 #include "readcfg.h"
-#include "ddsmsgqueue.h"
 #include "dds_gtk.h"
+#include "dds_sem.h"
 #define KEY_PATH "/home/pi/c-dds/src/main.c"
 
 
@@ -14,17 +16,16 @@
 //Should be assigned a shared memory address
 char* url_to_display;
 WebKitWebView* view;
+dds_sem lock;
 gboolean gtk_update_page(void* args){
 	char* arg = (char*)args;
+	try_dds_sem(lock);
 	if(strcmp(url_to_display, arg)){
-		//printf("Switching pages...\n");
 		webkit_web_view_load_uri(view, url_to_display);
-		int i;
-		for(i = 0;i < strlen(url_to_display)+1;++i){
-			arg[i] = url_to_display[i];
-		}
+		strcpy(url_to_display, arg);
 
 	}
+	release_dds_sem(lock);
 	return TRUE;
 }
 int main(int argc, char** argv){		
@@ -41,8 +42,7 @@ int main(int argc, char** argv){
 	}
 	url_to_display = (char*)shmat(shmid, (void*)0, 0);
 	
-	
-	
+	lock = dds_open_sem("/dds_gtk_sem", 1);
 	strcpy(url_to_display,(char*)dict_get_val(d, "init_page"));
 	printf("Initial display is %s\n",url_to_display);
 	view = make_view(url_to_display);
@@ -65,11 +65,14 @@ int main(int argc, char** argv){
 				break;
 			}
 			printf("Alright im going to switch the window to %s\n", buf);
+			try_dds_sem(lock);
 			strcpy(url_to_display, buf);
+			release_dds_sem(lock);
+
 		}
 		printf("Alright now im waiting for gtk to exit...\n");
 
-		wait(NULL);	
+		wait(NULL);
 	}
 
 	
