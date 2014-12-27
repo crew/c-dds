@@ -17,11 +17,13 @@ WebKitWebView* *make_view(char* initPage){
 	 gtk_init(&argc, &argv);          
 	// Create an 800x600 window that will contain the browser instance
 	GtkWidget *main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_default_size(GTK_WINDOW(main_window), 800, 600);
+	//gtk_window_set_default_size(GTK_WINDOW(main_window), 800, 600);
+	gtk_window_fullscreen(main_window);
 	// Create a browser instance
 	WebKitWebView *webView = WEBKIT_WEB_VIEW(webkit_web_view_new());
-						
-						
+	WebKitWebSettings* page_settings = webkit_web_view_get_settings(webView);
+	g_object_set(G_OBJECT(page_settings), "enable-page-cache", TRUE, "enable-accelerated-compositing", TRUE, NULL);
+	webkit_web_view_set_settings(webView, page_settings);
 	// Put the browser area into the main window
 	gtk_container_add(GTK_CONTAINER(main_window), GTK_WIDGET(webView));
 								   
