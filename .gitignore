@@ -1,0 +1,4 @@
+# Eclipse put this here
+/Linux GCC Debug/
+# These are only test binaries, so they can be ignored
+a.out
