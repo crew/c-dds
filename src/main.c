@@ -57,10 +57,48 @@ void* make_shmmem(){
 //	shmctl(shmid, IPC_RMID, 0);
 	return shmat(shmid, (void*)0, 0);
 }
-struct tm* get_cur_tm(){
+static struct tm* get_cur_tm(){
 	time_t t;
 	time(&t);
 	return localtime(&t);
+}
+static char* get_load_slide_msg(Dict* config){
+	
+	socket_message load_slide_msg;
+	load_slide_msg.datetime = get_cur_tm();
+	load_slide_msg.action = LOAD_SLIDES;
+	load_slide_msg.plugin_dest = "WPHandler";
+	socket_message_content content;
+	content.meta = NULL;
+	content.num_actions = 0;
+	content.actions = NULL;
+	load_slide_msg.content = &content;
+	pie src, dest;
+	src.name = dict_get_val(config, "name");
+	dest.name = "Grandma";
+	load_slide_msg.src = &src;
+	load_slide_msg.dest = &dest;
+	char* msg_string = message_to_json(&load_slide_msg);
+	return msg_string;
+}
+static char* get_hello_msg(Dict* config){
+	socket_message hello_msg;
+	hello_msg.datetime = get_cur_tm();
+	hello_msg.action = CONNECT;
+	hello_msg.plugin_dest = "socketServer";
+	socket_message_content helcon;
+	helcon.meta = make_dict();
+	dict_put(helcon.meta, "name", (char*)dict_get_val(config, "name"));
+	helcon.num_actions = 0;
+	helcon.actions = NULL;
+	hello_msg.content = &helcon;
+	pie hsrc, hdest;
+	hsrc.name = dict_get_val(config, "name");
+	hdest.name = "Grandma";
+	hello_msg.src = &hsrc;
+	hello_msg.dest = &hdest;
+	char* hello = message_to_json(&hello_msg);
+	return hello;
 }
 //TODO connect termination signal to free ALL the shit
 int main(int argc, char** argv){
@@ -88,69 +126,25 @@ int main(int argc, char** argv){
 
 		dds_sock to_server = global_sock = open_connection(url, port);
 		
-		socket_message hello_msg;
-		hello_msg.datetime = get_cur_tm();
-		hello_msg.action = CONNECT;
-		hello_msg.plugin_dest = "socketServer";
-		socket_message_content helcon;
-		helcon.meta = make_dict();
-		dict_put(helcon.meta, "name", (char*)dict_get_val(config, "name"));
-		helcon.num_actions = 0;
-		helcon.actions = NULL;
-		hello_msg.content = &helcon;
-		pie hsrc, hdest;
-		hsrc.name = dict_get_val(config, "name");
-		hdest.name = "Grandma";
-		hello_msg.src = &hsrc;
-		hello_msg.dest = &hdest;
-		char* hello = message_to_json(&hello_msg);
-		write_sb(to_server, hello, strlen(hello));
+		//Saying hello to the server
+		char* init_msg = get_hello_msg(config);
+		write_sb(to_server, init_msg, strlen(init_msg));
 		printf("Wrote hello message...\n");
-		free(hello);
+		free(init_msg);
+		//TODO python server needs to do \v splitting...
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-		socket_message load_slide_msg;
-		load_slide_msg.datetime = get_cur_tm();
-		load_slide_msg.action = LOAD_SLIDES;
-		load_slide_msg.plugin_dest = "WPHandler";
-		socket_message_content content;
-		content.meta = NULL;
-		content.num_actions = 0;
-		content.actions = NULL;
-		load_slide_msg.content = &content;
-		pie src, dest;
-		src.name = dict_get_val(config, "name");
-		dest.name = "Grandma";
-		load_slide_msg.src = &src;
-		load_slide_msg.dest = &dest;
-		char* msg_string = message_to_json(&load_slide_msg);
-		int wrote = write_sb(to_server, msg_string, strlen(msg_string));
+		char* load_slides_msg = get_load_slide_msg(config);
+		int wrote = write_sb(to_server, load_slides_msg, strlen(load_slides_msg));
 		printf("Wrote string to server, with bytes : %d\n", wrote);
+		free(load_slides_msg);
+
 		while(get_msg_count(to_server)<1){
 			read_b(to_server, 512);
 		}
 		char* buf = (char*)malloc(get_nxt_msg_size(to_server));
 		get_msg(to_server, buf);
 		printf("Recieved message %s\n", buf);
+		//socket_message* msg = json_to_message(buf);
 		free(buf);
 
 		
