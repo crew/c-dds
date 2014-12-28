@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <sys/shm.h>
 #include <time.h>
-
+#include <signal.h>
 #include "dds_io.h"
 #include "dds_gtk.h"
 #include "dict.h"
@@ -19,6 +19,7 @@ typedef struct _dds_gtk_args{
 	char* cur_url;
 	char previous_url[MAX_URL_LEN];
 }timeout_args;
+static dds_sock global_sock;
 static timeout_args* global_args;
 gboolean gtk_update_page(void* arg_void){
 	try_dds_sem(global_args->lock);
@@ -32,6 +33,15 @@ gboolean gtk_update_page(void* arg_void){
 	release_dds_sem(global_args->lock);
 	return TRUE;
 }
+void interrupt(){
+	printf("Interrupt signal recieved...\n");
+	if(global_sock != NULL){
+		close_connection(global_sock);
+	}
+	final_close_sem(global_args->lock);
+	shmdt(global_args->cur_url);
+	exit(SIGINT);
+}
 void* make_shmmem(){
 	key_t key = ftok(KEY_PATH, 's');
 	if(key == -1){
@@ -43,6 +53,7 @@ void* make_shmmem(){
 		perror("shmget");
 		exit(1);
 	}
+//	shmctl(shmid, IPC_RMID, 0);
 	return shmat(shmid, (void*)0, 0);
 }
 struct tm* get_cur_tm(){
@@ -56,12 +67,15 @@ int main(int argc, char** argv){
 	Dict* config = readConfig("../Configs/PIE.conf");
 	timeout_args targs;
 	global_args = &targs;
- 	global_args->cur_url= (char*)make_shmmem();
+ 	global_args->cur_url = (char*)make_shmmem();
 	global_args->previous_url[0] = '\0';
 	global_args->lock = lock;
 	strcpy(global_args->cur_url,(char*)dict_get_val(config, "init_page"));
 	global_args->view = make_view(global_args->cur_url);
 	printf("Initial display is %s\n", global_args->cur_url);
+
+	signal(SIGINT, interrupt);
+	global_sock = NULL;
 	if(!fork()){
 		g_timeout_add(1000,(GSourceFunc) gtk_update_page, (void*)NULL);
 		gtk_main();
@@ -71,7 +85,7 @@ int main(int argc, char** argv){
 		char* url = dict_get_val(config, "server");
 		char* port = dict_get_val(config, "port");
 
-		dds_sock to_server = open_connection(url, port);
+		dds_sock to_server = global_sock = open_connection(url, port);
 		
 		/*socket_message load_slide_msg;
 		load_slide_msg.datetime = get_cur_tm();
