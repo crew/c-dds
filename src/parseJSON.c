@@ -27,7 +27,7 @@ SLIDE_ACTION parse_action(char *str) {
     }
     else {
         syslog(LOG_MAKEPRI(LOG_SYSLOG, LOG_ERR),
-                "parse_action: Recieved an invalid slide action");
+                "parse_action: Received an invalid slide action");
         closelog();
         return (SLIDE_ACTION) NULL;
     }
@@ -111,18 +111,18 @@ cJSON *action_data_to_json(action_data *to_parse){
 	return to_ret;
 }
 
-void parse_actions(cJSON *raw_actions, socket_message_content *reciever){
+void parse_actions(cJSON *raw_actions, socket_message_content *receiver){
 	int len = cJSON_GetArraySize(raw_actions);
-	reciever->num_actions = len;
-	reciever->actions = malloc(len * sizeof(action_data *));
+	receiver->num_actions = len;
+	receiver->actions = malloc(len * sizeof(action_data *));
 	// Check if something went wrong
-	if (reciever->actions == NULL) {
+	if (receiver->actions == NULL) {
 	    syslog(LOG_MAKEPRI(LOG_SYSLOG, LOG_ERR), "parse_actions: Could not allocate actions array for received message's content\n");
 	    return;
 	}
 	int i;
 	for(i = 0; i < len; i++){
-		reciever->actions[i] = parse_action_data(cJSON_GetArrayItem(raw_actions, i));
+		receiver->actions[i] = parse_action_data(cJSON_GetArrayItem(raw_actions, i));
 	}
 	return;
 }
