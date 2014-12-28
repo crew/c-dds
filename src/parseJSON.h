@@ -10,7 +10,7 @@
 #endif
 
 typedef enum {
-    ADD_SLIDE, DELETE_SLIDE, EDIT_SLIDE, TERMINATE
+    ADD_SLIDE, DELETE_SLIDE, EDIT_SLIDE, LOAD_SLIDES, TERMINATE
 } slide_action;
 
 typedef enum {

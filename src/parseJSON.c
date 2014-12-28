@@ -22,6 +22,9 @@ slide_action parse_action(char *str) {
     else if (~strcmp(str, "Terminate")) {
         return TERMINATE;
     }
+    else if(~strcmp(str, "querySlides")){
+    	return LOAD_SLIDES;
+    }
     else {
         syslog(LOG_MAKEPRI(LOG_SYSLOG, LOG_ERR),
                 "parse_action: Recieved an invalid slide action");
@@ -42,6 +45,9 @@ char *action_string(slide_action action) {
     }
     else if (action == TERMINATE) {
         return "Terminate";
+    }
+    else if (action == LOAD_SLIDES){
+    	return "querySlides";
     }
     else {
         syslog(LOG_MAKEPRI(LOG_SYSLOG, LOG_ERR),
@@ -346,9 +352,10 @@ Dict *meta_to_dict(Dict *meta){
 		}
 	}
 	to_ret->next = meta_to_dict(meta->next);
-}
 
-/* Testing function...compile with gcc parseJSON.c cJSON.c dict.c -lm -lrt
+}
+/*
+//Testing function...compile with gcc parseJSON.c cJSON.c dict.c -lm -lrt
 char json_string[] = "{\"datetime\" : \"2014-11-30T22:04:15+0000\",\"action\" : \"add-slide\",\"pies\" : [{ \"name\" : \"shepard\" },{ \"name\" : \"blueberry\" }],\"content\"  : {\"ID\" : 14,\"Permalink\" : \"http://dds-wp...\", \"meta\" : {\"key1\" : [ \"value\" ],\"key2\" : [\"value1\",\"value2\",3,{\"meta can be weird\" : \"remember that\"}]}}}";
 
 int main() {
@@ -360,13 +367,12 @@ int main() {
             dt, action_string(sm->action), sm->pie_list[0]->name, sm->pie_list[1]->name, sm->content->id);
     //printf(dump_dict(sm->content->meta));
     dump_meta(sm->content->meta);
-    printf("sm->content->meta->key2->2: %d\n", *(int*)dict_get_val(meta_to_dict(sm->content->meta),"key2","2"));
+    //printf("sm->content->meta->key2->2: %d\n", *(int*)dict_get_val(meta_to_dict(sm->content->meta),"key2","2"));
     //printf(dump_dict(((Dict *)(sm->content->meta->value))->next->next->next->value));
     printf("back again:\n%s\n", message_to_json(sm));
     //printf("sm:\naction:%s\npies:\n\t(name: %s)\n\t(name: %s)\ncontent:\n\tid: %d\n...\n", action_string(sm->action), sm->pie_list[0]->name, sm->pie_list[1]->name, sm->content->id);
 }
 */
-
 
 
 

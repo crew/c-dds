@@ -2,6 +2,7 @@
 #include <sys/ipc.h>
 #include <unistd.h>
 #include <sys/shm.h>
+#include <time.h>
 
 #include "dds_io.h"
 #include "dds_gtk.h"
@@ -18,21 +19,20 @@ typedef struct _dds_gtk_args{
 	char* cur_url;
 	char previous_url[MAX_URL_LEN];
 }timeout_args;
-
+static timeout_args* global_args;
 gboolean gtk_update_page(void* arg_void){
-	timeout_args* arg_struct = (timeout_args*)arg_void;
-	try_dds_sem(arg_struct->lock);
-	if(strcmp(arg_struct->cur_url, arg_struct->previous_url)){
-		webkit_web_view_load_uri(arg_struct->view, arg_struct->cur_url);
-		if(strlen(arg_struct->cur_url) > MAX_URL_LEN){
-			arg_struct->cur_url[MAX_URL_LEN] = '\0';	
+	try_dds_sem(global_args->lock);
+	if(strcmp(global_args->cur_url, global_args->previous_url)){
+		webkit_web_view_load_uri(global_args->view, global_args->cur_url);
+		if(strlen(global_args->cur_url) > MAX_URL_LEN){
+			global_args->cur_url[MAX_URL_LEN] = '\0';	
 		}
-		strcpy(arg_struct->previous_url, arg_struct->cur_url);
+		strcpy(global_args->previous_url, global_args->cur_url);
 	}
-	release_dds_sem(arg_struct->lock);
+	release_dds_sem(global_args->lock);
 	return TRUE;
 }
-void* make_shmmem(timeout_args* t){
+void* make_shmmem(){
 	key_t key = ftok(KEY_PATH, 's');
 	if(key == -1){
 		perror("ftok");
@@ -45,43 +45,42 @@ void* make_shmmem(timeout_args* t){
 	}
 	return shmat(shmid, (void*)0, 0);
 }
+struct tm* get_cur_tm(){
+	time_t t;
+	time(&t);
+	return localtime(&t);
+}
 //TODO connect termination signal to free ALL the shit
 int main(int argc, char** argv){
 	dds_sem lock = dds_open_sem("/dds_gtk_sem", 1);	
-	Dict* d = readConfig("../Configs/PIE.conf");
-	timeout_args *targs = (timeout_args*)malloc(sizeof(timeout_args));
-	targs->cur_url= (char*)make_shmmem(targs);
-	targs->previous_url[0] = '\0';
-	targs->lock = lock;
-	strcpy(targs->cur_url,(char*)dict_get_val(d, "init_page"));
-	targs->view = make_view(targs->cur_url);
-	printf("Initial display is %s\n", targs->cur_url);
+	Dict* config = readConfig("../Configs/PIE.conf");
+	timeout_args targs;
+	global_args = &targs;
+ 	global_args->cur_url= (char*)make_shmmem();
+	global_args->previous_url[0] = '\0';
+	global_args->lock = lock;
+	strcpy(global_args->cur_url,(char*)dict_get_val(config, "init_page"));
+	global_args->view = make_view(global_args->cur_url);
+	printf("Initial display is %s\n", global_args->cur_url);
 	if(!fork()){
-		g_timeout_add(1000,(GSourceFunc) gtk_update_page, (void*)targs);
+		g_timeout_add(1000,(GSourceFunc) gtk_update_page, (void*)NULL);
 		gtk_main();
 		exit(0);
 		
 	}else{
-		char buf[1024];
-		printf("Hello I'll be doing your page switching today (I also happen to be running in a different process as gtk :D)\n");
+		char* url = dict_get_val(config, "server");
+		char* port = dict_get_val(config, "port");
 
-		while(1){
-			printf("Please give me a url to navigate to (don't make it longer then 1024 char's)\n");
-			printf("Type exit to terminate...\n");
-			scanf("%s", buf);
-			if(!strcmp("exit",buf)){
-				break;
-			}
-			printf("Alright im going to switch the window to %s\n", buf);
-			try_dds_sem(lock);
-			strcpy(targs->cur_url, buf);
-			release_dds_sem(lock);
-
-		}
-		printf("Alright now im waiting for gtk to exit...\n");
-
-		wait(NULL);
+		dds_sock to_server = open_connection(url, port);
+		
+		/*socket_message load_slide_msg;
+		load_slide_msg.datetime = get_cur_tm();
+		load_slide_msg.action = LOAD_SLIDES;
+		load_slide_msg.content = "Moar Slidez";
+		*/
 	}
+	wait(NULL);
+
 
 	
 	
