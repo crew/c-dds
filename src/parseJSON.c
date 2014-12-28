@@ -24,6 +24,8 @@ SLIDE_ACTION parse_action(char *str) {
     }
     else if(~strcmp(str, "querySlides")){
     	return LOAD_SLIDES;
+    }else if(~strcmp(str, "connect")){
+    	return CONNECT;
     }
     else {
         syslog(LOG_MAKEPRI(LOG_SYSLOG, LOG_ERR),
@@ -48,6 +50,9 @@ char *action_string(SLIDE_ACTION action) {
     }
     else if (action == LOAD_SLIDES){
     	return "querySlides";
+    }
+    else if(action == CONNECT){
+    	return "connect";
     }
     else {
         syslog(LOG_MAKEPRI(LOG_SYSLOG, LOG_ERR),
