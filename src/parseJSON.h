@@ -11,11 +11,11 @@
 
 #include <stdarg.h>
 
-#define SERVER_PI (pie){"DDS_SERVER"}
+#define SERVER_PI (pie){"Grandma"}
 #define REG_ACTION_INFO(type,strct) typedef struct strct type##_action_info
 
 typedef enum {
-    ADD_SLIDE, DELETE_SLIDE, EDIT_SLIDE, LOAD_SLIDES, TERMINATE
+    ADD_SLIDE, DELETE_SLIDE, EDIT_SLIDE, LOAD_SLIDES, CONNECT, TERMINATE
 } SLIDE_ACTION;
 
 typedef enum {

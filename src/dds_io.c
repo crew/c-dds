@@ -3,7 +3,9 @@ int dorecv(dds_sock s, char* buf, int amt, int flags){
 	ssize_t bytes_read = recv(s->fd, buf, amt, flags);
 	if(bytes_read == -1){
 		perror("recv");
-		err_quit("Error while recieving message...");
+		return 0;
+
+	//	err_quit("Error while recieving message...");
 	}
 	int newsize = s->bytes + bytes_read;
 
@@ -157,7 +159,7 @@ void print_addr_info(char* msg, struct addrinfo *info){
 		printf("Something went wrong... no host address\n");
 		perror("inet_ntop");
 	}
-	printf("%s %s\n",msg,addr);
+	printf("%s %s:%d\n",msg,addr, ntohs(sockaddr->sin_port));
 }
 dds_sock make_dds_socket(){
 	printf("Making socket...\n");
@@ -183,6 +185,7 @@ dds_sock open_connection(char* addr, char* port){
 	struct sockaddr_in *sockaddr;
 	struct addrinfo hint_struct;
 	struct addrinfo *addrlist;
+	struct addrinfo *localaddr;
 	hint_struct.ai_flags = 0;
 	hint_struct.ai_family = AF_INET;
 	hint_struct.ai_socktype = SOCK_STREAM;
@@ -199,13 +202,19 @@ dds_sock open_connection(char* addr, char* port){
 		close_connection(sock);
 		err_quit(gai_strerror(err));
 	}
-	
-	err = bind(sock->fd, addrlist->ai_addr, addrlist->ai_addrlen);
-	if(err == -1){
-		perror("bind");
+
+	err = getaddrinfo(addr, port, &hint_struct, &localaddr);
+	if(err!=0){
 		close_connection(sock);
-		err_quit("socket bind failed ...\n");
+		err_quit(gai_strerror(err));
 	}
+	//print_addr_info("Attempting to bind socket to ", localaddr);
+	//err = bind(sock->fd, localaddr->ai_addr, localaddr->ai_addrlen);
+	//if(err == -1){
+	//	perror("bind");
+	//	close_connection(sock);
+	//	err_quit("socket bind failed ...\n");
+	//}
 
 
 	err = connect(sock->fd, addrlist->ai_addr, addrlist->ai_addrlen);
