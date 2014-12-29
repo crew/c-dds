@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+
+# Auto generate single AllTests file for CuTest.
+# Searches through all *.c files in the current directory.
+# Prints to stdout.
+# Author: Asim Jalis
+# Date: 01/08/2003
+
+shopt -s extglob
+
+if test $# -eq 0 ; then FILES=../src/!(main*).c ; else FILES=../src/$* ; fi
+GCCFILES=$FILES | sed -e 's/\([^ ]*\.c\)/..\/src\/\1/g'
+
+echo '
+
+/* This is auto-generated code. Edit at your own peril. */
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "CuTest.h"
+
+' > ../tests/AllTests.c
+
+cat $FILES | grep '^void Test' | 
+    sed -e 's/(.*$//' \
+        -e 's/$/(CuTest*);/' \
+        -e 's/^/extern /' >> ../tests/AllTests.c
+
+echo \
+'
+
+void RunAllTests(void) 
+{
+    CuString *output = CuStringNew();
+    CuSuite* suite = CuSuiteNew();
+
+' >> ../tests/AllTests.c
+cat $FILES | grep '^void Test' | 
+    sed -e 's/^void //' \
+        -e 's/(.*$//' \
+        -e 's/^/    SUITE_ADD_TEST(suite, /' \
+        -e 's/$/);/' >> ../tests/AllTests.c
+
+echo \
+'
+    CuSuiteRun(suite);
+    CuSuiteSummary(suite, output);
+    CuSuiteDetails(suite, output);
+    printf("%s\n", output->buffer);
+    CuStringDelete(output);
+    CuSuiteDelete(suite);
+}
+
+int main(void)
+{
+    RunAllTests();
+}
+' >> ../tests/AllTests.c
+
+gcc -D___TEST_SUITES___ -o test-bin `pkg-config --cflags --libs gtk+-3.0 webkitgtk-3.0 glib-2.0` AllTests.c CuTest.c $FILES -lm -lrt -lc `pkg-config --cflags --libs gtk+-3.0 webkitgtk-3.0 glib-2.0` &> /dev/null
+
+./test-bin
+
+rm test-bin AllTests.c
