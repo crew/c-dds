@@ -141,10 +141,15 @@ int main(int argc, char** argv){
 		while(get_msg_count(to_server)<1){
 			read_b(to_server, 512);
 		}
-		char* buf = (char*)malloc(get_nxt_msg_size(to_server));
+		int nxt_size = get_nxt_msg_size(to_server);
+
+		char* buf = (char*)malloc(nxt_size);
 		get_msg(to_server, buf);
-		printf("Recieved message %s\n", buf);
-		//socket_message* msg = json_to_message(buf);
+		printf("Recieved message %s with len %d\n", buf, strlen(buf));
+		if(nxt_size != strlen(buf)+1){
+			printf("Something went horribly wrong...\n");
+		}
+		socket_message* msg = json_to_message(buf);
 		free(buf);
 
 		
