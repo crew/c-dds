@@ -2,7 +2,7 @@
 #define DDS_SLIDES_H
 
 
-#define URL_LEN 512
+#define URL_LEN 1024
 
 
 #include <string.h>
@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 typedef struct _slide{
-	//NOTE: limits urls to 512 char's
+	//NOTE: limits urls to 1024 char's
 	char location[URL_LEN];
 	int dur;
 	int id;

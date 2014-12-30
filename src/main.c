@@ -23,6 +23,7 @@ typedef struct _dds_gtk_args{
 }timeout_args;
 static dds_sock global_sock;
 static timeout_args* global_args;
+static pid_t gtk_id;
 gboolean gtk_update_page(void* arg_void){
 	try_dds_sem(global_args->lock);
 	if(strcmp(global_args->cur_url, global_args->previous_url)){
@@ -35,14 +36,20 @@ gboolean gtk_update_page(void* arg_void){
 	release_dds_sem(global_args->lock);
 	return TRUE;
 }
-void interrupt(){
+void interrupt_p(){
 	printf("Interrupt signal recieved...\n");
+	wait(NULL);
 	if(global_sock != NULL){
 		close_connection(global_sock);
 	}
 	final_close_sem(global_args->lock);
 	shmdt(global_args->cur_url);
 	exit(SIGINT);
+}
+void interrupt_c(){
+	close_dds_sem(global_args->lock);
+	shmdt(global_args->cur_url);
+	_Exit(SIGINT);
 }
 void* make_shmmem(){
 	key_t key = ftok(KEY_PATH, 's');
@@ -114,14 +121,20 @@ int main(int argc, char** argv){
 	global_args->view = make_view(global_args->cur_url);
 	printf("Initial display is %s\n", global_args->cur_url);
 
-	signal(SIGINT, interrupt);
+
 	global_sock = NULL;
-	if(!fork()){
+	gtk_id = fork();
+	if(gtk_id == 0){
+		signal(SIGINT, interrupt_c);
 		g_timeout_add(1000,(GSourceFunc) gtk_update_page, (void*)NULL);
 		gtk_main();
 		exit(0);
 		
 	}else{
+		signal(SIGINT, interrupt_p);
+
+		slide_list slides = make_list((char*)dict_get_val(config, "init_page"), atoi((char*)dict_get_val(config, "init_duration")), -1);
+		 
 		char* url = dict_get_val(config, "server");
 		char* port = dict_get_val(config, "port");
 
@@ -138,66 +151,127 @@ int main(int argc, char** argv){
 		int wrote = write_sb(to_server, load_slides_msg, strlen(load_slides_msg));
 		printf("Wrote string to server, with bytes : %d\n", wrote);
 		free(load_slides_msg);
+		//Main loop
+		time_t start_measure;
+		time(&start_measure);
 
-		while(get_msg_count(to_server)<1){
-			read_b(to_server, 512);
+		while(1){
+			time_t cur_time;
+			time(&cur_time);
+			slide* cur_slide = get_current_slide(slides);
+			if(cur_time - start_measure > 1000 * cur_slide->dur){
+				advance_list_index(slides);
+				cur_slide = get_current_slide(slides);
+				try_dds_sem(lock);
+				strcpy(global_args->cur_url, cur_slide->location);
+				release_dds_sem(lock);
+				time(&start_measure);
+			}
+			//Doesn't block...
+			read_db(to_server,256);
+			while(get_msg_count(to_server) > 0){
+				int nxt_size = get_nxt_msg_size(to_server);
+				char* msg_buf = (char*)malloc(nxt_size);
+				get_msg(to_server, msg_buf);
+				socket_message* p_msg = json_to_message(msg_buf);
+				free(msg_buf);
+				SLIDE_ACTION action = p_msg->action;
+				if(action == LOAD_SLIDES){
+					socket_message_content* content = p_msg->content;
+					action_data** ad = content->actions;
+					int i = 0;
+					for(;i < content->num_actions;i++){
+						action_data* data = ad[i];
+						if(data->type == ADT_SLIDE){
+							slide_action_info* slide_info = data->slide_data;
+							add_slide(slides,make_slide( slide_info->location, slide_info->duration, slide_info->id));
+						}
+					}
+					delete_slide_with_id(slides, -1);
+				//TODO need to free message?
+				}else if(action == ADD_SLIDE){
+					socket_message_content* c = p_msg->content;
+					Dict* d = c->meta;
+					socket_meta* id_m = (socket_meta*)dict_get_val(d, "ID");
+					socket_meta* link_m = (socket_meta*)dict_get_val(d, "permalink");
+					socket_meta* dur_m = (socket_meta*) dict_get_val(d, "duration");
+					if(id_m == NULL || link_m == NULL || dur_m ==NULL){
+						printf("Something was null...\n");
+						continue;
+					}
+					int id;
+					int duration;
+					char* loc;
+
+					if(id_m->type != T_INT){
+						printf("ID wasn't an int ?\n");
+						continue;
+					}
+					id = *((int*)id_m->value);
+					if(dur_m->type != T_INT){
+						printf("Duration wasn't an int ?\n");
+						continue;
+					}
+					duration = *((int*)dur_m->value);
+					if(link_m->type != T_POINT_CHAR){
+						printf("Link wasn't a string ?\n");
+						continue;
+					}
+					loc = (char*)link_m->value;
+					add_slide(slides,make_slide( loc, duration, id));
+				}else if(action == EDIT_SLIDE){
+					socket_message_content* c = p_msg->content;
+					Dict* d = c->meta;
+					socket_meta* id_m = (socket_meta*)dict_get_val(d, "ID");
+					socket_meta* link_m = (socket_meta*)dict_get_val(d, "permalink");
+					socket_meta* dur_m = (socket_meta*) dict_get_val(d, "duration");
+					if(id_m == NULL || link_m == NULL || dur_m ==NULL){
+						printf("Something was null...\n");
+						continue;
+					}
+					int id;
+					int duration;
+					char* loc;
+
+					if(id_m->type != T_INT){
+						printf("ID wasn't an int ?\n");
+						continue;
+					}
+					id = *((int*)id_m->value);
+					if(dur_m->type != T_INT){
+						printf("Duration wasn't an int ?\n");
+						continue;
+					}
+					duration = *((int*)dur_m->value);
+					if(link_m->type != T_POINT_CHAR){
+						printf("Link wasn't a string ?\n");
+						continue;
+					}
+					loc = (char*)link_m->value;
+					set_slide_with_id(slides, loc, duration, id);
+				}else if(action == DELETE_SLIDE){
+					Dict* d = p_msg->content->meta;
+					socket_meta* id_m = (socket_meta*)dict_get_val(d, "ID");
+					if(id_m == NULL){
+						printf("ID in delete was null...\n");
+						continue;
+					}
+					if(id_m->type != T_INT){
+						printf("id wasn't an int ?");
+						continue;
+					}
+					delete_slide_with_id(slides, *((int*)id_m->value));
+				}else if(action == TERMINATE){
+					printf("Recieved the TERMINATE action... terminating...\n");
+					kill(gtk_id, SIGINT);
+					wait(NULL);
+					exit(0);
+				}
+			}
+
 		}
-		int nxt_size = get_nxt_msg_size(to_server);
-
-		char* buf = (char*)malloc(nxt_size);
-		get_msg(to_server, buf);
-		printf("Recieved message %s with len %d\n", buf, strlen(buf));
-		if(nxt_size != strlen(buf)+1){
-			printf("Something went horribly wrong...\n");
-		}
-		socket_message* msg = json_to_message(buf);
-		free(buf);
-
-		
 	}
 	wait(NULL);
-
-
-	
-	
-	
-	/*dds_sock sock = open_connection(argv[1],argv[2]);
-	char* str = "Hello World!\v2\v";
-	printf("Sending message!\n");
-	int send_return = write_sb(sock, str, strlen(str)+1);
-	printf("Sent %d bytes!\n", send_return);
-
-
-	printf("Attemping to recieve from socket...\n");
-	int read_return = read_b(sock, 256);
-	printf("Recieved %d bytes on read!\n", read_return);
-	if(msg_complete(sock)){
-		printf("I've got a message!\n");
-	}else{
-		printf("I don't have a message!\n");
-	}
-	printf("Socket has %d messages in it!\n", get_msg_count(sock));
-	if(msg_in_progress(sock)){
-		printf("There is another message in progress!\n");
-		
-	}else{
-		printf("There is no other messages in progress!\n");
-	}
-	int nxt_size = get_nxt_msg_size(sock);
-	printf("The next message has size %d\n", nxt_size);
-	char* buf = (char*)malloc(nxt_size);
-	get_msg(sock, buf);
-	printf("Got message %s\n", buf);
-	free(buf);
-	printf("Socket now has %d messages in it\n", get_msg_count(sock));
-	nxt_size = get_nxt_msg_size(sock);
-	printf("The next message has size %d\n", nxt_size);
-	buf = (char*)malloc(nxt_size);
-	get_msg(sock, buf);
-	printf("Got message %s\n", buf);
-	free(buf);
-	close_connection(sock);
-	*/
 }
 
 
