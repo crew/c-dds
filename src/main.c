@@ -159,7 +159,8 @@ int main(int argc, char** argv){
 			time_t cur_time;
 			time(&cur_time);
 			slide* cur_slide = get_current_slide(slides);
-			if(cur_time - start_measure > 1000 * cur_slide->dur){
+			if(cur_time - start_measure >  cur_slide->dur){
+				printf("Switching slide...\n");
 				advance_list_index(slides);
 				cur_slide = get_current_slide(slides);
 				try_dds_sem(lock);
@@ -168,15 +169,17 @@ int main(int argc, char** argv){
 				time(&start_measure);
 			}
 			//Doesn't block...
-			read_db(to_server,256);
+			read_db(to_server,512);
 			while(get_msg_count(to_server) > 0){
 				int nxt_size = get_nxt_msg_size(to_server);
 				char* msg_buf = (char*)malloc(nxt_size);
+
 				get_msg(to_server, msg_buf);
 				socket_message* p_msg = json_to_message(msg_buf);
 				free(msg_buf);
 				SLIDE_ACTION action = p_msg->action;
 				if(action == LOAD_SLIDES){
+					printf("Loading new slides!\n");
 					socket_message_content* content = p_msg->content;
 					action_data** ad = content->actions;
 					int i = 0;
@@ -184,19 +187,21 @@ int main(int argc, char** argv){
 						action_data* data = ad[i];
 						if(data->type == ADT_SLIDE){
 							slide_action_info* slide_info = data->slide_data;
+							printf("Loading slide [%s,%d,%d]\n",slide_info->location, slide_info->duration, slide_info->id);
 							add_slide(slides,make_slide( slide_info->location, slide_info->duration, slide_info->id));
 						}
 					}
 					delete_slide_with_id(slides, -1);
 				//TODO need to free message?
 				}else if(action == ADD_SLIDE){
+					printf("Adding new slide!\n");
 					socket_message_content* c = p_msg->content;
 					Dict* d = c->meta;
 					socket_meta* id_m = (socket_meta*)dict_get_val(d, "ID");
 					socket_meta* link_m = (socket_meta*)dict_get_val(d, "permalink");
 					socket_meta* dur_m = (socket_meta*) dict_get_val(d, "duration");
 					if(id_m == NULL || link_m == NULL || dur_m ==NULL){
-						printf("Something was null...\n");
+						printf("ADD: Something was null...\n");
 						continue;
 					}
 					int id;
@@ -220,13 +225,14 @@ int main(int argc, char** argv){
 					loc = (char*)link_m->value;
 					add_slide(slides,make_slide( loc, duration, id));
 				}else if(action == EDIT_SLIDE){
+					printf("Editing a slide!\n");
 					socket_message_content* c = p_msg->content;
 					Dict* d = c->meta;
 					socket_meta* id_m = (socket_meta*)dict_get_val(d, "ID");
 					socket_meta* link_m = (socket_meta*)dict_get_val(d, "permalink");
 					socket_meta* dur_m = (socket_meta*) dict_get_val(d, "duration");
 					if(id_m == NULL || link_m == NULL || dur_m ==NULL){
-						printf("Something was null...\n");
+						printf("EDIT: Something was null...\n");
 						continue;
 					}
 					int id;
@@ -250,6 +256,7 @@ int main(int argc, char** argv){
 					loc = (char*)link_m->value;
 					set_slide_with_id(slides, loc, duration, id);
 				}else if(action == DELETE_SLIDE){
+					printf("Deleteing a slide!\n");
 					Dict* d = p_msg->content->meta;
 					socket_meta* id_m = (socket_meta*)dict_get_val(d, "ID");
 					if(id_m == NULL){

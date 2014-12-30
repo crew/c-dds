@@ -11,6 +11,7 @@
 
 
 SLIDE_ACTION parse_action(char *str) {
+    
     if (!strcmp(str, "add-slide")) {
         return ADD_SLIDE;
     }
@@ -23,7 +24,7 @@ SLIDE_ACTION parse_action(char *str) {
     else if (!strcmp(str, "Terminate")) {
         return TERMINATE;
     }
-    else if(!strcmp(str, "querySlides")){
+    else if(!strcmp(str, "load-slides")){
     	return LOAD_SLIDES;
     }else if(!strcmp(str, "connect")){
     	return CONNECT;
@@ -295,6 +296,9 @@ socket_message *json_to_message(char *str) {
     cJSON *input, *content;
     input = cJSON_Parse(str);
     content = cJSON_GetObjectItem(input, "content");
+    if(content->type == cJSON_String){
+    	content = cJSON_Parse(content->valuestring);
+    }
     socket_message_content *msg_c = (socket_message_content *) malloc(sizeof(socket_message_content));
     //msg_c->id = cJSON_GetObjectItem(content, "ID")->valueint;
     //msg_c->permalink = cJSON_GetObjectItem(content, "Permalink")->valuestring;
@@ -305,7 +309,12 @@ socket_message *json_to_message(char *str) {
     }
     socket_message *msg = (socket_message *) malloc(sizeof(socket_message));
     msg->datetime = malloc(sizeof(struct tm));
-    parse_date(cJSON_GetObjectItem(input, "datetime")->valuestring, msg->datetime);
+    if(cJSON_GetObjectItem(input, "datetime")->type != cJSON_NULL){
+    	parse_date(cJSON_GetObjectItem(input, "datetime")->valuestring, msg->datetime);
+    }else{
+	free(msg->datetime);
+    	msg->datetime = NULL;
+    }
     msg->action = parse_action(cJSON_GetObjectItem(input, "action")->valuestring);
     msg->content = msg_c;
     //parse_pies(cJSON_GetObjectItem(input, "pies"), msg);
@@ -420,12 +429,14 @@ Dict *meta_to_dict(Dict *meta){
 	return to_ret;
 }
 
+/*
 //Testing function...compile with gcc parseJSON.c cJSON.c dict.c -lm -lrt
 //char json_string[] = "{\"datetime\" : \"2014-11-30T22:04:15+0000\",\"action\" : \"add-slide\",\"pies\" : [{ \"name\" : \"shepard\" },{ \"name\" : \"blueberry\" }],\"content\"  : {\"ID\" : 14,\"Permalink\" : \"http://dds-wp...\", \"meta\" : {\"key1\" : [ \"value\" ],\"key2\" : [\"value1\",\"value2\",3,{\"meta can be weird\" : \"remember that\"}]}}}";
 //char json_string[] = "{\"src\" : \"WPHandler\", \"dest\" : \"keylime\", \"datetime\" : \"2014-11-30T22:04:15+0000\", \"content\" : {\"actions\" : [{\"ID\" : 226,\"type\" : \"slide\",\"location\" : \"http:\\/\\/www.ccs.neu.edu\\/systems\\/labstats\\/212.html\",\"duration\" : 1},{\"ID\" : 194,\"type\" : \"slide\",\"location\" : \"http:\\/\\/10.0.0.202\\/weather2\\/\",\"duration\" : 15}]}, \"pluginDest\" : \"slideShow\", \"action\" : \"load-slides\"}";
 //char json_string[] = "{\"src\" : \"WPHandler\", \"dest\" : \"keylime\", \"datetime\" : \"2014-11-30T22:04:15+0000\", \"content\" : {\"actions\" : [{\"ID\" : 226,\"type\" : \"slide\",\"location\" : \"http:\\/\\/www.ccs.neu.edu\\/systems\\/labstats\\/212.html\",\"duration\" : 1},{\"ID\" : 194,\"type\" : \"slide\",\"location\" : \"http:\\/\\/10.0.0.202\\/weather2\\/\",\"duration\" : 15}], \"meta\" : {\"key1\" : [ \"value\" ],\"key2\" : [\"value1\",\"value2\",3,{\"meta can be weird\" : \"remember that\"}]}}, \"pluginDest\" : \"slideShow\", \"action\" : \"load-slides\"}";
-/*char json_string[] = "{\"src\": \"WPHandler\", \"dest\": \"keylime\", \"datetime\": \"2014-11-30T22:04:15+0000\", \"content\": {\"actions\":[{\"type\":\"slide\",\"ID\": 12, \"location\":\"https:\\/\\/twitter.com\\/swiftonsecurity\",\"duration\":20},{\"type\":\"slide\",\"ID\": 27, \"location\":\"http:\\/\\/dds-wp.ccs.neu.edu\\/?slide=t-rex-trying&pie_name=keylime\",\"duration\":5},{\"type\":\"slide\",\"ID\": 55, \"location\":\"http:\\/\\/www.ccs.neu.edu\\/systems\\/labstats\\/212.html\",\"duration\":1},{\"type\":\"slide\",\"ID\": 94, \"location\":\"http:\\/\\/radar.weather.gov\\/ridge\\/Conus\\/Loop\\/NatLoop.gif\",\"duration\":20}]}, \"pluginDest\": \"slideShow\", \"action\": \"load-slides\"}";
+char json_string1[] = "{\"src\": \"WPHandler\", \"dest\": \"keylime\", \"datetime\": \"2014-11-30T22:04:15+0000\", \"content\": {\"actions\":[{\"type\":\"slide\",\"ID\": 12, \"location\":\"https:\\/\\/twitter.com\\/swiftonsecurity\",\"duration\":20},{\"type\":\"slide\",\"ID\": 27, \"location\":\"http:\\/\\/dds-wp.ccs.neu.edu\\/?slide=t-rex-trying&pie_name=keylime\",\"duration\":5},{\"type\":\"slide\",\"ID\": 55, \"location\":\"http:\\/\\/www.ccs.neu.edu\\/systems\\/labstats\\/212.html\",\"duration\":1},{\"type\":\"slide\",\"ID\": 94, \"location\":\"http:\\/\\/radar.weather.gov\\/ridge\\/Conus\\/Loop\\/NatLoop.gif\",\"duration\":20}]}, \"pluginDest\": \"slideShow\", \"action\": \"load-slides\"}";
 
+char json_string[] = "{\"src\": \"WPHandler\", \"dest\": \"keylime\", \"datetime\": \"2014-12-30T21:53:45+0000\", \"content\": {\"actions\":[{\"ID\":5,\"type\":\"slide\",\"location\":\"http:\\/\\/192.168.11.132\\/?slide=test1&pie_name=keylime\",\"duration\":1}]}, \"pluginDest\": \"slideShow\", \"action\": \"load-slides\"}";
 int main() {
     socket_message *sm = json_to_message(json_string);
     #define DT_BUF_SIZE 27
@@ -438,8 +449,8 @@ int main() {
     	printf("sm->content->meta->key2->2: %d\n", *(int*)dict_get_val(meta_to_dict(sm->content->meta),"key2","2"));
     }
     printf("back again:\n%s\n", message_to_json(sm));
-}*/
-
+}
+*/
 #ifdef ___TEST_SUITES___
 
 /*

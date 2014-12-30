@@ -2,6 +2,10 @@
 int dorecv(dds_sock s, char* buf, int amt, int flags){
 	ssize_t bytes_read = recv(s->fd, buf, amt, flags);
 	if(bytes_read == -1){
+		int err = errno;
+		if((err == EAGAIN || err == EWOULDBLOCK)){
+			return 0;
+		}
 		perror("recv");
 		return 0;
 
@@ -43,7 +47,7 @@ int read_db(dds_sock s, int amt){
 	int bytes_read = dorecv(s, buf, amt, MSG_DONTWAIT);
 	free(buf);
 	if(bytes_read == 0){
-		printf("No messages availible during non-waiting recv...\n");
+	//	printf("No messages availible during non-waiting recv...\n");
 	}
 	return bytes_read;
 }
