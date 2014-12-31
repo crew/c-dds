@@ -9,6 +9,11 @@ OBJS=$(SRCS:.c=.o)
 all : $(OBJS)
 	$(CC) $(OBJS) -o ../$(BUILDDIR)/$(OUT) $(ENDARGS)
 	make clean
+debug : debug_obj
+	$(CC) $(OBJS) -g -o ../$(BUILDDIR)/$(OUT) $(ENDARGS)
+
+debug_obj : $(SRCS)
+	$(CC) -g $(CFLAGS) $(SRCS)
 
 $(OBJS) : $(SRCS)
 	$(CC) $(CFLAGS) $(SRCS)
