@@ -21,3 +21,6 @@ $(OBJS) : $(SRCS)
 clean : 
 	rm -rf $(OBJS) ddsmsgqueue.o
 	rm -rf *.h.gch
+
+tests :
+	../tests/run-tests
