@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
-
+//PASSED MEMORY CHECKS (ASSUMING KEYS ARE ALSO MALLOC'ED)
 Dict* make_dict_with(char* key, void* value){
 	Dict* d = (Dict*) malloc(sizeof(Dict));
 	d->key = key;

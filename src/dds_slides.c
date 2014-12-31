@@ -1,7 +1,7 @@
 #include "dds_slides.h"
 
 
-
+//MEMCHECK PASSED (I ALSO FOUND SOME BUGS DOING THIS...
 slide* make_slide(char* loc, int dur, int id){
 	slide* s = (slide*)malloc(sizeof(slide));
 	if(strlen(loc) > URL_LEN - 1){
@@ -74,7 +74,7 @@ int advance_list_index(slide_list l){
 }
 int delete_and_advance(slide_list l){
 	delete_slide_with_id(l, l->cur->data->id);
-	list_node* before_cur = l->list_start;
+/*	list_node* before_cur = l->list_start;
 	while(before_cur->next != l->cur){before_cur = before_cur->next;}
 	if(l->cur == l->list_start){
 		l->list_start = l->cur->next;
@@ -84,7 +84,7 @@ int delete_and_advance(slide_list l){
 	l->cur = l->cur->next;
 	delete_slide(cur_hold->data);
 	free(cur_hold);
-	return 1;
+*/	return 1;
 }
 slide* get_current_slide(slide_list s){
 	return s->cur->data;
@@ -92,20 +92,23 @@ slide* get_current_slide(slide_list s){
 int add_slide(slide_list list, slide* slide){
 	list_node* node = (list_node*)malloc(sizeof(list_node));
 	node->data = slide;
-	node->next = list->cur->next;
-	list->cur->next = node;
+	node->next = list->list_start;
+	list_node* tmp = list->list_start;
+	while(tmp->next != list->list_start){tmp = tmp->next;}
+	tmp->next = node;
 	return 1;
 }
 
 void delete_slide_with_id(slide_list sl, int id){
 	list_node* target = sl->list_start;
 	while(target->data->id != id){
-		if(target->next = sl->list_start){
+		if(target->next == sl->list_start){
 			//not in list...
 			return;
 		}
 		target = target->next;
 	}
+
 	list_node* before_target = sl->list_start;
 	while(before_target->next != target){before_target = before_target->next;}
 	if(target == sl->list_start){

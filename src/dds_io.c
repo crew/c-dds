@@ -1,4 +1,5 @@
 #include "dds_io.h"
+//PASSED MEMCHECK (BY EYE) ALL POINTERS MUST HAVE BEEN FREED
 int dorecv(dds_sock s, char* buf, int amt, int flags){
 	ssize_t bytes_read = recv(s->fd, buf, amt, flags);
 	if(bytes_read == -1){
