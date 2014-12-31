@@ -12,7 +12,7 @@
 #include "dds_sem.h"
 #include "parseJSON.h"
 #include "dds_slides.h"
-#define KEY_PATH "/home/pi/c-dds/src/main.c"
+//#define KEY_PATH "/home/pi/c-dds/src/main.c"
 #define MAX_URL_LEN 1024
 
 typedef struct _dds_gtk_args{
