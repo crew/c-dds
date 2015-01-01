@@ -59,8 +59,8 @@ int main(void)
 }
 ' >> ../tests/AllTests.c
 
-gcc -D___TEST_SUITES___ -o test-bin `pkg-config --cflags --libs gtk+-3.0 webkitgtk-3.0 glib-2.0` ../tests/AllTests.c ../tests/CuTest.c $FILES -lm -lrt -lc `pkg-config --cflags --libs gtk+-3.0 webkitgtk-3.0 glib-2.0` &> /dev/null
+gcc -D___TEST_SUITES___ -o ../tests/test-bin `pkg-config --cflags --libs gtk+-3.0 webkitgtk-3.0 glib-2.0` ../tests/AllTests.c ../tests/CuTest.c $FILES -lm -lrt -lc `pkg-config --cflags --libs gtk+-3.0 webkitgtk-3.0 glib-2.0` &> /dev/null
 
-./test-bin
+./../tests/test-bin
 
-rm test-bin AllTests.c
+rm ../tests/test-bin ../tests/AllTests.c

@@ -65,7 +65,6 @@ char *action_string(SLIDE_ACTION action) {
 }
 
 pie *parse_pie(cJSON *raw_pie) {
-    //char *name = cJSON_GetObjectItem(raw_pie, "name")->valuestring;
 	char *name = raw_pie->valuestring;
     pie *to_ret = malloc(sizeof(pie) + sizeof(name));
     to_ret->name = name;
@@ -74,8 +73,6 @@ pie *parse_pie(cJSON *raw_pie) {
 
 // In case we need to do anything fancy down the road
 char *pie_to_json(pie *parsed_pie) {
-    //cJSON *to_ret = cJSON_CreateObject();
-    //cJSON_AddStringToObject(to_ret, "name", parsed_pie->name);
     return parsed_pie->name;
 }
 
@@ -215,7 +212,6 @@ void recursive_parse(cJSON *current, Dict *d, int arr_idx) {
                 }
                 parsed->type = T_POINT_VOID;
                 parsed->value = value;
-                //*parsed = (socket_meta) {value, T_POINT_VOID};
             }
     }
     if(current->string) {
@@ -300,11 +296,9 @@ socket_message *json_to_message(char *str) {
     	content = cJSON_Parse(content->valuestring);
     }
     socket_message_content *msg_c = (socket_message_content *) malloc(sizeof(socket_message_content));
-    //msg_c->id = cJSON_GetObjectItem(content, "ID")->valueint;
-    //msg_c->permalink = cJSON_GetObjectItem(content, "Permalink")->valuestring;
     parse_actions(cJSON_GetObjectItem(content,"actions"),msg_c);
     cJSON *mt;
-    if(mt = cJSON_GetObjectItem(content, "meta")){ // Make sure meta is in JSON
+    if(mt = cJSON_GetObjectItem(content, "meta")){
     	msg_c->meta = parse_json_meta(mt);
     }
     socket_message *msg = (socket_message *) malloc(sizeof(socket_message));
@@ -317,7 +311,6 @@ socket_message *json_to_message(char *str) {
     }
     msg->action = parse_action(cJSON_GetObjectItem(input, "action")->valuestring);
     msg->content = msg_c;
-    //parse_pies(cJSON_GetObjectItem(input, "pies"), msg);
     msg->src = parse_pie(cJSON_GetObjectItem(input, "src"));
     msg->dest = parse_pie(cJSON_GetObjectItem(input, "dest"));
     msg->plugin_dest = cJSON_GetObjectItem(input, "pluginDest")->valuestring;
@@ -332,15 +325,12 @@ char *message_to_json(socket_message *msg) {
     strftime(datetime, sizeof(datetime), "%FT%T%z", msg->datetime);
     cJSON_AddStringToObject(root, "datetime", datetime);
     cJSON_AddStringToObject(root, "action", action_string(msg->action));
-    //cJSON_AddItemToObject(root, "pies", pie_arr_to_json(msg->pie_list, msg->pie_list_len));
     cJSON_AddStringToObject(root, "src", pie_to_json(msg->src));
     cJSON_AddStringToObject(root, "dest", pie_to_json(msg->dest));
     if(msg->plugin_dest){
     	cJSON_AddStringToObject(root, "pluginDest", msg->plugin_dest);
     }
     cJSON_AddItemToObject(root, "content", content = cJSON_CreateObject());
-    //cJSON_AddNumberToObject(content, "ID", msg->content->id);
-    //cJSON_AddStringToObject(content, "Permalink", msg->content->permalink);
     cJSON_AddItemToObject(content, "actions", actions_to_json(msg->content->actions, msg->content->num_actions));
     if(msg->content->meta){
     	cJSON_AddItemToObject(content, "meta", parse_message_meta(msg->content->meta));
@@ -350,7 +340,6 @@ char *message_to_json(socket_message *msg) {
 
 void dump_meta_atom(socket_meta *mem, int indents);
 void dump_meta_dict(Dict *d, int indents);
-//void dump_meta_array(Dict *d, int indents);
 
 void dump_meta_dict(Dict *d, int indents){
 	int i = 0;
