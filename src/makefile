@@ -13,7 +13,7 @@ debug : debug_obj
 	$(CC) $(OBJS) -g -o ../$(BUILDDIR)/$(OUT) $(ENDARGS)
 
 debug_obj : $(SRCS)
-	$(CC) -g $(CFLAGS) $(SRCS)
+	$(CC) -gdwarf-3 -g3 $(CFLAGS) $(SRCS)
 
 $(OBJS) : $(SRCS)
 	$(CC) $(CFLAGS) $(SRCS)

@@ -4,6 +4,7 @@
 #include <string.h>
 #include <syslog.h>
 #include <string.h>
+#include <stdbool.h>
 #include "dds-globals.h"
 #include "cJSON.h"
 #include "dict.h"
@@ -304,9 +305,142 @@ cJSON *parse_message_meta(Dict *msg_meta) {
     return meta;
 }
 
+/*
+#define cJSON_False 0
+#define cJSON_True 1
+#define cJSON_NULL 2
+#define cJSON_Number 3
+#define cJSON_String 4
+#define cJSON_Array 5
+#define cJSON_Object 6
+*/
+Dict *cJSON_to_dict(cJSON *raw_cJSON){
+	Dict *dct = make_dict();
+	cJSON *cur = raw_cJSON;
+	_Bool is_array = !cur->string;
+	int arr_idx = 0;
+	while(cur != NULL){
+		char *arr_key;
+		if (is_array){
+			arr_key = (char*)malloc(6 * sizeof(char)); // Limit array length to 1,000,000
+			sprintf(arr_key,"%d",arr_idx);
+			arr_idx++;
+		}
+		else{
+			arr_key = cur->string;
+		}
+		if((cur->type == cJSON_Array) || (cur->type == cJSON_Object)){
+			Dict *d = cJSON_to_dict(cur->child);
+			dict_put(dct, arr_key, d);
+			//DICT_PUT(dct, arr_key, cJSON_to_dict(cur->child), T_ARR);
+			if(cur->type == cJSON_Array){dict_override_type(dct,T_ARR,arr_key);}
+		}
+		else{
+			if(cur->type == cJSON_String){
+				dict_put(dct, arr_key, cur->valuestring);
+			}
+			else if(cur->type == cJSON_Number && ((double)cur->valueint != cur->valuedouble)){
+				double *to_put = malloc(sizeof(cur->valuedouble));
+				*to_put = cur->valuedouble;
+				dict_put(dct, arr_key, to_put);
+			}
+			else{
+				int *to_put = malloc(sizeof(cur->valueint));
+				*to_put = cur->valueint;
+				dict_put(dct, arr_key, to_put);
+			}
+		}
+		cur = cur->next;
+	}
+	return dct;
+}
+// T_INT, T_DOUBLE, T_CHAR, T_POINT_INT, T_POINT_DOUBLE, T_POINT_CHAR, T_POINT_VOID, T_ARR, T_DICT
+void recursive_dict_to_cJSON(cJSON *add_to, Dict *d, _Bool adding_to_array){
+	if (adding_to_array){
+		switch(d->type){
+		case T_INT:
+			cJSON_AddNumberToArray(add_to,*(int *)d->value);
+			break;
+		case T_DOUBLE:
+			cJSON_AddNumberToArray(add_to,*(double *)d->value);
+			break;
+		case T_CHAR:;
+			char to_add[] = {*(char *)d->value, '\0'};
+			cJSON_AddStringToArray(add_to,to_add);
+			break;
+		case T_POINT_CHAR:
+			cJSON_AddStringToArray(add_to,(char*)d->value);
+			break;
+		case T_POINT_INT:
+			cJSON_AddNumberToArray(add_to,*(int*)d->value);
+			break;
+		case T_POINT_DOUBLE:
+			cJSON_AddNumberToArray(add_to,*(double*)d->value);
+			break;
+		case T_ARR:;
+			cJSON *array_to_add = cJSON_CreateArray();
+			recursive_dict_to_cJSON(array_to_add, ((Dict*)d->value)->next, 1);
+			cJSON_AddItemToArray(add_to, array_to_add);
+			break;
+		case T_DICT:;
+			cJSON *dict_to_add = cJSON_CreateObject();
+			recursive_dict_to_cJSON(dict_to_add, ((Dict*)d->value)->next, 0);
+			cJSON_AddItemToArray(add_to, dict_to_add);
+			break;
+		default:
+			break;
+		}
+	}
+	else{
+		switch(d->type){
+		case T_INT:
+			cJSON_AddNumberToObject(add_to,d->key, *(int *)d->value);
+			break;
+		case T_DOUBLE:
+			cJSON_AddNumberToObject(add_to,d->key, *(double *)d->value);
+			break;
+		case T_CHAR:;
+			char to_add[] = {*(char *)d->value, '\0'};
+			cJSON_AddStringToObject(add_to,d->key, to_add);
+			break;
+		case T_POINT_CHAR:
+			cJSON_AddStringToObject(add_to,d->key, (char*)d->value);
+			break;
+		case T_POINT_INT:
+			cJSON_AddNumberToObject(add_to,d->key, *(int*)d->value);
+			break;
+		case T_POINT_DOUBLE:
+			cJSON_AddNumberToObject(add_to,d->key, *(double*)d->value);
+			break;
+		case T_ARR:;
+			cJSON *array_to_add = cJSON_CreateArray();
+			recursive_dict_to_cJSON(array_to_add, ((Dict*)d->value)->next, 1);
+			cJSON_AddItemToObject(add_to, d->key, array_to_add);
+			break;
+		case T_DICT:;
+			cJSON *dict_to_add = cJSON_CreateObject();
+			recursive_dict_to_cJSON(dict_to_add, ((Dict*)d->value)->next, 0);
+			cJSON_AddItemToObject(add_to, d->key, dict_to_add);
+			break;
+		default:
+			break;
+		}
+	}
+	if(d->next){return recursive_dict_to_cJSON(add_to, d->next, adding_to_array);}
+	return;
+}
+
+cJSON *dict_to_cJSON(Dict *d){
+	cJSON *ret = cJSON_CreateObject();
+	recursive_dict_to_cJSON(ret,d->next,0);
+	return ret;
+}
+
 socket_message *json_to_message(char *str) {
     cJSON *input, *content;
     input = cJSON_Parse(str);
+    Dict *input_dict = cJSON_to_dict(input->child);
+    printf("\n\n");
     content = cJSON_GetObjectItem(input, "content");
     if(content->type == cJSON_String){
     	content = cJSON_Parse(content->valuestring);
@@ -314,8 +448,18 @@ socket_message *json_to_message(char *str) {
     socket_message_content *msg_c = (socket_message_content *) malloc(sizeof(socket_message_content));
     parse_actions(cJSON_GetObjectItem(content,"actions"),msg_c);
     cJSON *mt;
-    if(mt = cJSON_GetObjectItem(content, "meta")){
+    Dict *mtest;
+    /*if(mt = cJSON_GetObjectItem(content, "meta")){
     	msg_c->meta = parse_json_meta(mt);
+    	mtest = cJSON_to_dict(mt);
+    	printf("mtest:\n");
+    	dump_dict(mtest);
+    	printf("\n\nBack:\n");
+    	printf("%s",cJSON_Print(dict_to_cJSON(mtest)));
+    	printf("\n\n");
+    }*/
+    if (dict_has_key((Dict*)dict_get_val(input_dict,"content"),"meta")){
+    	msg_c->meta = dict_get_val(input_dict,"content","meta");
     }
     socket_message *msg = (socket_message *) malloc(sizeof(socket_message));
     msg->datetime = malloc(sizeof(struct tm));
@@ -349,7 +493,7 @@ char *message_to_json(socket_message *msg) {
     cJSON_AddItemToObject(root, "content", content = cJSON_CreateObject());
     cJSON_AddItemToObject(content, "actions", actions_to_json(msg->content->actions, msg->content->num_actions));
     if(msg->content->meta){
-    	cJSON_AddItemToObject(content, "meta", parse_message_meta(msg->content->meta));
+    	cJSON_AddItemToObject(content, "meta", dict_to_cJSON(msg->content->meta));
     }
     return cJSON_Print(root);
 }
@@ -441,10 +585,10 @@ Dict *meta_to_dict(Dict *meta){
 //Testing function...compile with gcc parseJSON.c cJSON.c dict.c -lm -lrt
 //char json_string[] = "{\"datetime\" : \"2014-11-30T22:04:15+0000\",\"action\" : \"add-slide\",\"pies\" : [{ \"name\" : \"shepard\" },{ \"name\" : \"blueberry\" }],\"content\"  : {\"ID\" : 14,\"Permalink\" : \"http://dds-wp...\", \"meta\" : {\"key1\" : [ \"value\" ],\"key2\" : [\"value1\",\"value2\",3,{\"meta can be weird\" : \"remember that\"}]}}}";
 //char json_string[] = "{\"src\" : \"WPHandler\", \"dest\" : \"keylime\", \"datetime\" : \"2014-11-30T22:04:15+0000\", \"content\" : {\"actions\" : [{\"ID\" : 226,\"type\" : \"slide\",\"location\" : \"http:\\/\\/www.ccs.neu.edu\\/systems\\/labstats\\/212.html\",\"duration\" : 1},{\"ID\" : 194,\"type\" : \"slide\",\"location\" : \"http:\\/\\/10.0.0.202\\/weather2\\/\",\"duration\" : 15}]}, \"pluginDest\" : \"slideShow\", \"action\" : \"load-slides\"}";
-//char json_string[] = "{\"src\" : \"WPHandler\", \"dest\" : \"keylime\", \"datetime\" : \"2014-11-30T22:04:15+0000\", \"content\" : {\"actions\" : [{\"ID\" : 226,\"type\" : \"slide\",\"location\" : \"http:\\/\\/www.ccs.neu.edu\\/systems\\/labstats\\/212.html\",\"duration\" : 1},{\"ID\" : 194,\"type\" : \"slide\",\"location\" : \"http:\\/\\/10.0.0.202\\/weather2\\/\",\"duration\" : 15}], \"meta\" : {\"key1\" : [ \"value\" ],\"key2\" : [\"value1\",\"value2\",3,{\"meta can be weird\" : \"remember that\"}]}}, \"pluginDest\" : \"slideShow\", \"action\" : \"load-slides\"}";
-char json_string1[] = "{\"src\": \"WPHandler\", \"dest\": \"keylime\", \"datetime\": \"2014-11-30T22:04:15+0000\", \"content\": {\"actions\":[{\"type\":\"slide\",\"ID\": 12, \"location\":\"https:\\/\\/twitter.com\\/swiftonsecurity\",\"duration\":20},{\"type\":\"slide\",\"ID\": 27, \"location\":\"http:\\/\\/dds-wp.ccs.neu.edu\\/?slide=t-rex-trying&pie_name=keylime\",\"duration\":5},{\"type\":\"slide\",\"ID\": 55, \"location\":\"http:\\/\\/www.ccs.neu.edu\\/systems\\/labstats\\/212.html\",\"duration\":1},{\"type\":\"slide\",\"ID\": 94, \"location\":\"http:\\/\\/radar.weather.gov\\/ridge\\/Conus\\/Loop\\/NatLoop.gif\",\"duration\":20}]}, \"pluginDest\": \"slideShow\", \"action\": \"load-slides\"}";
+char json_string[] = "{\"src\" : \"WPHandler\", \"dest\" : \"keylime\", \"datetime\" : \"2014-11-30T22:04:15+0000\", \"content\" : {\"actions\" : [{\"ID\" : 226,\"type\" : \"slide\",\"location\" : \"http:\\/\\/www.ccs.neu.edu\\/systems\\/labstats\\/212.html\",\"duration\" : 1},{\"ID\" : 194,\"type\" : \"slide\",\"location\" : \"http:\\/\\/10.0.0.202\\/weather2\\/\",\"duration\" : 15}], \"meta\" : {\"key1\" : [ \"value\" ],\"key2\" : [\"value1\",\"value2\",3,{\"meta can be weird\" : \"remember that\"}]}}, \"pluginDest\" : \"slideShow\", \"action\" : \"load-slides\"}";
+//char json_string[] = "{\"src\": \"WPHandler\", \"dest\": \"keylime\", \"datetime\": \"2014-11-30T22:04:15+0000\", \"content\": {\"actions\":[{\"type\":\"slide\",\"ID\": 12, \"location\":\"https:\\/\\/twitter.com\\/swiftonsecurity\",\"duration\":20},{\"type\":\"slide\",\"ID\": 27, \"location\":\"http:\\/\\/dds-wp.ccs.neu.edu\\/?slide=t-rex-trying&pie_name=keylime\",\"duration\":5},{\"type\":\"slide\",\"ID\": 55, \"location\":\"http:\\/\\/www.ccs.neu.edu\\/systems\\/labstats\\/212.html\",\"duration\":1},{\"type\":\"slide\",\"ID\": 94, \"location\":\"http:\\/\\/radar.weather.gov\\/ridge\\/Conus\\/Loop\\/NatLoop.gif\",\"duration\":20}]}, \"pluginDest\": \"slideShow\", \"action\": \"load-slides\"}";
 
-char json_string[] = "{\"src\": \"WPHandler\", \"dest\": \"keylime\", \"datetime\": \"2014-12-30T21:53:45+0000\", \"content\": {\"actions\":[{\"ID\":5,\"type\":\"slide\",\"location\":\"http:\\/\\/192.168.11.132\\/?slide=test1&pie_name=keylime\",\"duration\":1}]}, \"pluginDest\": \"slideShow\", \"action\": \"load-slides\"}";
+//char json_string[] = "{\"src\": \"WPHandler\", \"dest\": \"keylime\", \"datetime\": \"2014-12-30T21:53:45+0000\", \"content\": {\"actions\":[{\"ID\":5,\"type\":\"slide\",\"location\":\"http:\\/\\/192.168.11.132\\/?slide=test1&pie_name=keylime\",\"duration\":1}]}, \"pluginDest\": \"slideShow\", \"action\": \"load-slides\"}";
 int main() {
     socket_message *sm = json_to_message(json_string);
     #define DT_BUF_SIZE 27
@@ -452,13 +596,10 @@ int main() {
     strftime(dt, sizeof(dt), "%Y-%m-%dT%H:%M:%S%z", sm->datetime);
     printf("sm:\ndatetime: %s\naction: %s\nsrc: %s\ndest: %s\ncontent:\n\t\n...\n",
             dt, action_string(sm->action), sm->src->name, sm->dest->name);
-    if(sm->content->meta){
-    	dump_meta(sm->content->meta);
-    	printf("sm->content->meta->key2->2: %d\n", *(int*)dict_get_val(meta_to_dict(sm->content->meta),"key2","2"));
-    }
+
     printf("back again:\n%s\n", message_to_json(sm));
-}
-*/
+}*/
+
 #ifdef ___TEST_SUITES___
 
 /*

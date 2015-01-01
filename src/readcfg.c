@@ -49,7 +49,7 @@ int add_split_to_dict(Dict* d, FILE* f){
 	strcpy(key, line);
 	strcpy(val, line+keyLen);
 	free(line);
-	dict_put(d, key, (void*)val);
+	dict_put(d, key, val);
 	return !feof(f);
 }
 
