@@ -26,7 +26,8 @@ SLIDE_ACTION parse_action(char *str) {
     }
     else if(!strcmp(str, "load-slides")){
     	return LOAD_SLIDES;
-    }else if(!strcmp(str, "connect")){
+    }
+    else if(!strcmp(str, "connect")){
     	return CONNECT;
     }
     else {
@@ -51,7 +52,7 @@ char *action_string(SLIDE_ACTION action) {
         return "Terminate";
     }
     else if (action == LOAD_SLIDES){
-    	return "querySlides";
+    	return "load-slides";
     }
     else if(action == CONNECT){
     	return "connect";
@@ -177,11 +178,18 @@ void recursive_parse(cJSON *current, Dict *d, int arr_idx) {
     }
     else {
             if (current->type == cJSON_Number) {
-                // TODO: Doubles
-                int *val_int = malloc(sizeof(current->valueint));
-                *val_int = current->valueint;
-                parsed->type = T_INT;
-                parsed->value = val_int;
+            	if ((double)(current->valueint) == current->valuedouble){
+            		int *val_int = malloc(sizeof(current->valueint));
+                	*val_int = current->valueint;
+                	parsed->type = T_INT;
+                	parsed->value = val_int;
+            	}
+            	else{
+            		float *val_doub = malloc(sizeof(current->valuedouble));
+            		*val_doub = current->valuedouble;
+            		parsed->type = T_DOUBLE;
+            		parsed->value = val_doub;
+            	}
             }
             else if (current->type == cJSON_String) {
                 char *str;
@@ -243,6 +251,14 @@ void parse_and_add_to(Dict *to_add, cJSON *add_to, int is_object) {
             }
             else {
                 cJSON_AddNumberToArray(add_to, *((int*)((socket_meta *) to_add->value)->value));
+            }
+        }
+        else if ((((socket_meta *) to_add->value)->type) == T_DOUBLE){
+            if (is_object) {
+                cJSON_AddNumberToObject(add_to, to_add->key, *((double*)((socket_meta *) to_add->value)->value));
+            }
+            else {
+                cJSON_AddNumberToArray(add_to, *((double*)((socket_meta *) to_add->value)->value));
             }
         }
         else if ((((socket_meta *) to_add->value)->type) == T_POINT_CHAR) {
@@ -371,6 +387,9 @@ void dump_meta_atom(socket_meta *mem, int indents){
 	if(mem->type == T_INT){
 		printf("%d",*(int *)mem->value);
 	}
+	else if(mem->type == T_DOUBLE){
+		printf("%f",*(double *)mem->value);
+	}
 	else if(mem->type == T_CHAR){
 		printf("%c",*(char *)mem->value);
 	}
@@ -451,7 +470,7 @@ void TestParseAction(CuTest *tc){
 	CuAssertTrue(tc,parse_action("delete-slide") == DELETE_SLIDE);
 	CuAssertTrue(tc,parse_action("edit-slide") == EDIT_SLIDE);
 	CuAssertTrue(tc,parse_action("Terminate") == TERMINATE);
-	CuAssertTrue(tc,parse_action("querySlides") == LOAD_SLIDES);
+	CuAssertTrue(tc,parse_action("load-slides") == LOAD_SLIDES);
 	CuAssertTrue(tc,parse_action("connect") == CONNECT);
 }
 
@@ -460,7 +479,7 @@ void TestActionString(CuTest *tc){
 	CuAssertStrEquals(tc,"delete-slide",action_string(DELETE_SLIDE));
 	CuAssertStrEquals(tc,"edit-slide",action_string(EDIT_SLIDE));
 	CuAssertStrEquals(tc,"Terminate",action_string(TERMINATE));
-	CuAssertStrEquals(tc,"querySlides",action_string(LOAD_SLIDES));
+	CuAssertStrEquals(tc,"load-slides",action_string(LOAD_SLIDES));
 	CuAssertStrEquals(tc,"connect",action_string(CONNECT));
 }
 
