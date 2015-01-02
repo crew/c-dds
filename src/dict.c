@@ -64,10 +64,12 @@ Dict* DICT_GET_KEYPAIR(Dict* d, va_list arguments){
 	va_list args;
 	va_copy(args,arguments);
 	Dict *cur = d->next;
-	void *ret = cur;
+	void *ret = NULL;
 	char *k;
+	_Bool first = 1;
 	while((k = va_arg(args, char *)) != NULL){
-		cur = (Dict*)ret;
+		if(first){first = 0;}
+		else{cur = (Dict*)((Dict*)ret)->value;}
 		if(!cur){printf("WARNING: Key %s not found in dictionary. Returning null.\n", k); return NULL;}
 		while(cur != NULL){
 			if(!strcmp(k, cur->key)){
@@ -102,9 +104,9 @@ Dict* DICT_GET_KEYPAIR(Dict* d, va_list arguments){
 void* DICT_GET_VAL(Dict* d, ...){
 	va_list args;
 	va_start(args,d);
-	void *kp = DICT_GET_KEYPAIR(d,args)->value;
+	void *kp = DICT_GET_KEYPAIR(d,args);
 	va_end(args);
-	return kp;
+	return (kp == NULL) ? kp : ((Dict*)kp)->value;
 	//Not sure if i can just use d as cur?
 	/*if (d == NULL){return NULL;}
 	Dict* cur = d->next;
@@ -145,6 +147,13 @@ void* DICT_PUT(Dict* d, char* key, void* val, VAL_TYPE vtype){
 	index->next = make_dict_with(key,val);
 	index->next->type = vtype;
 	return NULL;
+}
+VAL_TYPE DICT_GET_TYPE(Dict* dct, ...){
+	va_list args;
+	va_start(args, dct);
+	Dict *kp = DICT_GET_KEYPAIR(dct,args);
+	va_end(args);
+	return kp->type;
 }
 void* DICT_OVERRIDE_TYPE(Dict* dct, VAL_TYPE new_type, ...){
 	va_list args;

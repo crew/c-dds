@@ -440,10 +440,12 @@ socket_message *json_to_message(char *str) {
     cJSON *input, *content;
     input = cJSON_Parse(str);
     Dict *input_dict = cJSON_to_dict(input->child);
-    cJSON *ctemp = cJSON_Parse((char*)dict_get_val(input_dict,"content"));
-    dict_remove_entry(input_dict,"content");
-    dict_put(input_dict,"content",cJSON_to_dict(ctemp));
-    cJSON_Delete(ctemp);
+    if(dict_get_type(input_dict,"content") == T_POINT_CHAR){
+    	cJSON *ctemp = cJSON_Parse((char*)dict_get_val(input_dict,"content"));
+    	dict_remove_entry(input_dict,"content");
+    	dict_put(input_dict,"content",cJSON_to_dict(ctemp->child));
+    	cJSON_Delete(ctemp);
+    }
     printf("\n\n");
     content = cJSON_GetObjectItem(input, "content");
     if(content->type == cJSON_String){
@@ -451,19 +453,17 @@ socket_message *json_to_message(char *str) {
     }
     socket_message_content *msg_c = (socket_message_content *) malloc(sizeof(socket_message_content));
     parse_actions(cJSON_GetObjectItem(content,"actions"),msg_c);
-    cJSON *mt;
-    Dict *mtest;
-    /*if(mt = cJSON_GetObjectItem(content, "meta")){
-    	msg_c->meta = parse_json_meta(mt);
-    	mtest = cJSON_to_dict(mt);
-    	printf("mtest:\n");
-    	dump_dict(mtest);
-    	printf("\n\nBack:\n");
-    	printf("%s",cJSON_Print(dict_to_cJSON(mtest)));
-    	printf("\n\n");
-    }*/
     if (dict_has_key((Dict*)dict_get_val(input_dict,"content"),"meta")){
-    	msg_c->meta = dict_get_val(input_dict,"content","meta");
+    	// This is a tiny bit more CPU-taxing, but will help reduce memory footprint
+    	Dict *persist_meta = malloc(sizeof((Dict*)dict_get_val(input_dict,"content","meta")));
+    	memcpy(persist_meta,dict_get_val(input_dict,"content","meta"),sizeof((Dict*)dict_get_val(input_dict,"content","meta")));
+    	msg_c->meta = persist_meta;
+    	dict_remove_entry(input_dict,"content");
+    	free(input_dict);
+    }
+    else{
+    	printf("No meta found.\n");
+    	msg_c->meta = NULL;
     }
     socket_message *msg = (socket_message *) malloc(sizeof(socket_message));
     msg->datetime = malloc(sizeof(struct tm));
@@ -499,7 +499,44 @@ char *message_to_json(socket_message *msg) {
     if(msg->content->meta){
     	cJSON_AddItemToObject(content, "meta", dict_to_cJSON(msg->content->meta));
     }
-    return cJSON_Print(root);
+    char *ret = cJSON_Print(root);
+    cJSON_Delete(root);
+    return ret;
+}
+
+void delete_socket_message(socket_message *m){
+	if (m->content){
+		if (m->content->meta){
+			delete_dict(m->content->meta);
+		}
+		if(m->content->actions){
+			int i = 0;
+			for(;i < m->content->num_actions;i++){
+				if(m->content->actions[i]){
+					free(m->content->actions[i]);
+				}
+				m->content->actions[i] = NULL;
+			}
+			free(m->content->actions);
+		}
+	m->content->meta = NULL;
+	m->content->actions = NULL;
+	free(m->content);
+	}
+	if(m->datetime){
+		free(m->datetime);
+	}
+	if(m->src){
+		free(m->src);
+	}
+	if(m->dest){
+		free(m->dest);
+	}
+	m->content = NULL;
+	m->datetime = NULL;
+	m->src = NULL;
+	m->dest = NULL;
+	free(m);
 }
 
 void dump_meta_atom(socket_meta *mem, int indents);

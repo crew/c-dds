@@ -274,6 +274,9 @@ int main(int argc, char** argv){
 					wait(NULL);
 					exit(0);
 				}
+				if(p_msg){
+					delete_socket_message(p_msg);
+				}
 			}
 
 		}

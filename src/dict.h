@@ -19,9 +19,11 @@ void delete_dict_and_contents(Dict*);
 int dict_has_key(Dict* dict, char* key);
 void* DICT_GET_VAL(Dict* dict,  ...);
 void* DICT_PUT(Dict* dict, char* key, void* val, VAL_TYPE vtype);
+VAL_TYPE DICT_GET_TYPE(Dict* dict, ...);
 void* DICT_OVERRIDE_TYPE(Dict* dict, VAL_TYPE new_type, ...);
 int dict_remove_entry(Dict* dict, char* key); 
 #define dict_get_val(...) DICT_GET_VAL(__VA_ARGS__, NULL)
+#define dict_get_type(...) DICT_GET_TYPE(__VA_ARGS__, NULL)
 #define dict_override_type(...) DICT_OVERRIDE_TYPE(__VA_ARGS__, NULL)
 #if __GNUC__ > 4 || \
               (__GNUC__ == 4 && (__GNUC_MINOR__ >= 9 ) )
@@ -33,7 +35,7 @@ int dict_remove_entry(Dict* dict, char* key);
 
 #else
 #include <stdio.h>
-printf("WARNING: This version of GCC does not support _Generic(). As such, automatic dictionary typing is disabled and the program may not function correctly.\n\n\tPlease upgrade to GCC version 4.9.\n\n");
+#pragma message "WARNING: This version of GCC does not support _Generic(). As such, automatic dictionary typing is disabled and the program may not function correctly.\n\n\tPlease upgrade to GCC version 4.9.\n\n"
 #define dict_put(dct, key, val) DICT_PUT(dct,key,val,T_POINT_VOID)
 #endif
 #endif
