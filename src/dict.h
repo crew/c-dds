@@ -19,7 +19,7 @@ void delete_dict_and_contents(Dict*);
 int dict_has_key(Dict* dict, char* key);
 void* DICT_GET_VAL(Dict* dict,  ...);
 void* DICT_PUT(Dict* dict, char* key, void* val, VAL_TYPE vtype);
-void* DICT_OVERRIDE_TYPE(Dict* dict, VAL_TYPE new_type, char* key, ...);
+void* DICT_OVERRIDE_TYPE(Dict* dict, VAL_TYPE new_type, ...);
 int dict_remove_entry(Dict* dict, char* key); 
 #define dict_get_val(...) DICT_GET_VAL(__VA_ARGS__, NULL)
 #define dict_override_type(...) DICT_OVERRIDE_TYPE(__VA_ARGS__, NULL)

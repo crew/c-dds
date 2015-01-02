@@ -128,6 +128,8 @@ void err_quit(const char* str){
 //int read_s(dds_sock s, 
 int write_s(dds_sock s, const char* str, int size, int flags){
 	int bytes = send(s->fd, str, size, flags);
+	char *vtab = "\v";
+	send(s->fd, vtab, 1, flags);
 	if(bytes == -1){
 		perror("send");
 		exit(errno);

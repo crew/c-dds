@@ -440,6 +440,10 @@ socket_message *json_to_message(char *str) {
     cJSON *input, *content;
     input = cJSON_Parse(str);
     Dict *input_dict = cJSON_to_dict(input->child);
+    cJSON *ctemp = cJSON_Parse((char*)dict_get_val(input_dict,"content"));
+    dict_remove_entry(input_dict,"content");
+    dict_put(input_dict,"content",cJSON_to_dict(ctemp));
+    cJSON_Delete(ctemp);
     printf("\n\n");
     content = cJSON_GetObjectItem(input, "content");
     if(content->type == cJSON_String){
