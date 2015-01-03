@@ -509,30 +509,32 @@ char *message_to_json(socket_message *msg) {
 
 void delete_socket_message(socket_message *m){
 	if (m->content){
-		if (m->content->meta){
-			delete_dict(m->content->meta);
-		}
+        delete_dict(m->content->meta);
 		if(m->content->actions){
 			int i = 0;
 			for(;i < m->content->num_actions;i++){
-				if(m->content->actions[i]){
-					free(m->content->actions[i]);
-				}
+                action_data* data = m->content->actions[i];
+                if(data->type == ADT_SLIDE){
+                    free(data->slide_data);
+                }
+				free(data);
 				m->content->actions[i] = NULL;
 			}
-			free(m->content->actions);
 		}
-	m->content->meta = NULL;
-	m->content->actions = NULL;
-	free(m->content);
+        free(m->content->actions);
+        m->content->meta = NULL;
+        m->content->actions = NULL;
 	}
-	if(m->datetime){
-		free(m->datetime);
-	}
+    free(m->content);
+    free(m->datetime);
 	if(m->src){
+        //TODO we should not make the value in the struct a pointer
+        //We can't free non malloc'ed memory and most of the time we are just puting literal strings
+        //in there
 		free(m->src);
 	}
 	if(m->dest){
+        //TODO see src comment above
 		free(m->dest);
 	}
 	m->content = NULL;
