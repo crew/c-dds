@@ -3,11 +3,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <signal.h>
 //PASSED MEMORY CHECKS (ASSUMING KEYS ARE ALSO MALLOC'ED)
 Dict* make_dict_with(char* key, void* value){
 	Dict* d = (Dict*) malloc(sizeof(Dict));
 	d->key = key;
 	d->value = value;
+	if(!key && !value){d->type = T_NULL;} // Empty dictionary
 	d->next = NULL;
 	return d;
 }
@@ -15,8 +17,11 @@ Dict* make_dict(void){
 	return make_dict_with(NULL,NULL);
 }
 int dict_size(Dict* d){
-    //|VVVVVVVVVV|  This seems like a bug? I don't think we should ever be trying to size a NULL dict....
-	if(d == NULL || d->next == NULL){
+	if(!d){
+		printf("ERROR: dict_size: NULL Dict* received. Raising SIGTRAP.\n");
+		raise(5); // (Just in case you didn't know, SIGTRAP causes a gdb breakpoint)
+	}
+	if(d->next == NULL){
 		return 0;
 	}
 	Dict* i = d->next;
@@ -41,11 +46,11 @@ void del_last(Dict* d, int freeContents){
         if(index->type == T_DICT){
             delete_dict_and_contents((Dict*)index->value);
         }
+        else{
+        	if(index->type != T_NULL){free(index->value);}
+        }
 		free(index->key);
-		// index->value is parameter on _delete_dict,
-		//   which already frees it, so this is a double
-		//   free
-		//free(index->value);
+
 		index->key = NULL;
 		index->value = NULL;
 	}
@@ -139,6 +144,7 @@ void* DICT_GET_VAL(Dict* d, ...){
 	return ret;*/
 }
 void* DICT_PUT(Dict* d, char* key, void* val, VAL_TYPE vtype){
+	if(!val){vtype = T_NULL;}
     if(vtype == T_POINT_CHAR){
         printf("Adding %s:%s\n",key, (char*)val);
     }
@@ -173,6 +179,9 @@ void* DICT_OVERRIDE_TYPE(Dict* dct, VAL_TYPE new_type, ...){
 	va_start(args,new_type);
 	Dict *kp = DICT_GET_KEYPAIR(dct,args);
 	va_end(args);
+	if(!kp->value){
+		printf("WARNING: Overriding type of null pointer at dictionary key %s.\n",kp->key);
+	}
 	kp->type = new_type;
 	return kp;
 	/*if (dct == NULL){return NULL;}
@@ -265,6 +274,9 @@ void dump_dict_atom(Dict *mem, int indents){
 	}
 	else if(mem->type == T_POINT_VOID){
 		printf("<void pointer> (0x%x)",(int)mem->value);
+	}
+	else if(mem->type == T_NULL){
+		printf("<null pointer> (0x0)");
 	}
 	else if(mem->type == T_ARR){
 		printf("Array: [\n");

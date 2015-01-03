@@ -336,6 +336,9 @@ Dict *cJSON_to_dict(cJSON *raw_cJSON){
 			//DICT_PUT(dct, arr_key, cJSON_to_dict(cur->child), T_ARR);
 			if(cur->type == cJSON_Array){dict_override_type(dct,T_ARR,arr_key);}
 		}
+		else if(cur->type == cJSON_NULL){
+			dict_put(dct,arr_key,NULL);
+		}
 		else{
 			if(cur->type == cJSON_String){
 				dict_put(dct, arr_key, DYN_STR(cur->valuestring));
@@ -380,6 +383,9 @@ void recursive_dict_to_cJSON(cJSON *add_to, Dict *d, _Bool adding_to_array){
 		case T_POINT_DOUBLE:
 			cJSON_AddNumberToArray(add_to,*(double*)d->value);
 			break;
+		case T_NULL:
+			cJSON_AddNullToArray(add_to);
+			break;
 		case T_ARR:;
 			cJSON *array_to_add = cJSON_CreateArray();
 			recursive_dict_to_cJSON(array_to_add, ((Dict*)d->value)->next, 1);
@@ -414,6 +420,9 @@ void recursive_dict_to_cJSON(cJSON *add_to, Dict *d, _Bool adding_to_array){
 			break;
 		case T_POINT_DOUBLE:
 			cJSON_AddNumberToObject(add_to,d->key, *(double*)d->value);
+			break;
+		case T_NULL:
+			cJSON_AddNullToObject(add_to,d->key);
 			break;
 		case T_ARR:;
 			cJSON *array_to_add = cJSON_CreateArray();
@@ -514,8 +523,10 @@ void delete_socket_message(socket_message *m){
         if(!m->content->meta){
             printf("Meta is not null...\n");
         }
-        printf("Deleting dict and contents...\n");
-        delete_dict_and_contents(m->content->meta);
+        else{
+        	printf("Deleting dict and contents...\n");
+        	delete_dict_and_contents(m->content->meta);
+        }
         printf("Doing actions stuff....\n");
 		if(m->content->actions){
 			int i = 0;
