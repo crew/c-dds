@@ -40,7 +40,7 @@ void del_last(Dict* d, int freeContents){
 		index = index->next;
 	}
     if(index->type == T_POINT_CHAR){
-        printf("Removing last element with %s:%s\n", index->key, index->value);
+        printf("Removing last element with %s:%s\n", index->key, (char*)index->value);
     }
 	if(freeContents){
         if(index->type == T_DICT){
@@ -84,7 +84,7 @@ Dict* DICT_GET_KEYPAIR(Dict* d, va_list arguments){
 	_Bool first = 1;
 	while((k = va_arg(args, char *)) != NULL){
 		if(first){first = 0;}
-		else{cur = (Dict*)((Dict*)ret)->value;}
+		else{cur = ((Dict*)((Dict*)ret)->value)->next;}
 		if(!cur){printf("WARNING: Key %s not found in dictionary. Returning null.\n", k); return NULL;}
 		while(cur != NULL){
 			if(!strcmp(k, cur->key)){
@@ -95,26 +95,6 @@ Dict* DICT_GET_KEYPAIR(Dict* d, va_list arguments){
 		}
 	}
 	return (Dict*)ret;
-	/*//Not sure if i can just use d as cur?
-	if (d == NULL){return NULL;}
-	Dict* cur = d->next;
-	void *ret = NULL;
-	va_list arguments;
-	char *k;
-	while(cur != NULL){
-		if(!strcmp(key, cur->key)){
-			ret = cur->value;
-			break;
-		}
-		cur = cur->next;
-	}
-	va_start(arguments,key);
-	while(((k = va_arg(arguments, char *)) != NULL) && (k[0] != '\0')){
-		void *temp = DICT_GET_VAL(((Dict *)ret),k);
-		ret = (temp == NULL) ? ret : temp;
-	}
-	va_end(arguments);
-	return ret;*/
 }
 void* DICT_GET_VAL(Dict* d, ...){
 	va_list args;
@@ -122,26 +102,6 @@ void* DICT_GET_VAL(Dict* d, ...){
 	void *kp = DICT_GET_KEYPAIR(d,args);
 	va_end(args);
 	return (kp == NULL) ? kp : ((Dict*)kp)->value;
-	//Not sure if i can just use d as cur?
-	/*if (d == NULL){return NULL;}
-	Dict* cur = d->next;
-	void *ret = NULL;
-	va_list arguments;
-	char *k;
-	while(cur != NULL){		
-		if(!strcmp(key, cur->key)){
-			ret = cur->value;
-			break;
-		}
-		cur = cur->next;
-	}
-	va_start(arguments,key);
-	while(((k = va_arg(arguments, char *)) != NULL) && (k[0] != '\0')){
-		void *temp = DICT_GET_VAL(((Dict *)ret),k);
-		ret = (temp == NULL) ? ret : temp;
-	}
-	va_end(arguments);
-	return ret;*/
 }
 void* DICT_PUT(Dict* d, char* key, void* val, VAL_TYPE vtype){
 	if(!val){vtype = T_NULL;}
@@ -184,42 +144,32 @@ void* DICT_OVERRIDE_TYPE(Dict* dct, VAL_TYPE new_type, ...){
 	}
 	kp->type = new_type;
 	return kp;
-	/*if (dct == NULL){return NULL;}
-		Dict* cur = dct->next;
-		void *ret = NULL;
-		va_list arguments;
-		char *k;
-		while(cur != NULL){
-			if(!strcmp(key, cur->key)){
-				ret = cur;
-				break;
-			}
-			cur = cur->next;
-		}
-		va_start(arguments,key);
-		while((k = va_arg(arguments, char *)) != NULL){
-			void *temp = DICT_GET_VAL(((Dict *)ret),k);
-			if(!temp){printf("WARNING: Failed to retrieve dictionary entry for key %s. Type overriding failed."); return NULL;}
-			ret = (temp == NULL) ? ret : temp;
-		}
-		((Dict *)ret)->type = new_type;
-		va_end(arguments);
-		return ret;*/
 }
-int dict_remove_entry(Dict* d, char* key){
+
+int _dict_remove_entry(Dict *d, char* key, _Bool free_entry){
 	Dict* prev = d;
 	Dict* index = d->next;
 	while(index != NULL){
 		if(!strcmp(key, index->key)){
 			prev->next = index->next;
             //TODO might need to do some more free-ing here, or we could leave it up to user
-			free(index);
+			if(free_entry){free(index);}
 			return 1;
 		}
 		prev = index;
 		index = index->next;
 	}
 	return 0;
+}
+
+int dict_remove_entry(Dict* d, char* key){
+	return _dict_remove_entry(d,key,1);
+}
+
+// DOES NOT FREE VALUE; ONLY DETATCHES IT FROM DICTIONARY
+// USE WITH EXTREME CAUTION
+int dict_detatch_entry(Dict* d, char* key){
+	return _dict_remove_entry(d,key,0);
 }
 
 // T_INT, T_DOUBLE, T_CHAR, T_POINT_INT, T_POINT_DOUBLE, T_POINT_CHAR, T_POINT_VOID, T_ARR, T_DICT

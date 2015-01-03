@@ -22,6 +22,7 @@ void* DICT_PUT(Dict* dict, char* key, void* val, VAL_TYPE vtype);
 VAL_TYPE DICT_GET_TYPE(Dict* dict, ...);
 void* DICT_OVERRIDE_TYPE(Dict* dict, VAL_TYPE new_type, ...);
 int dict_remove_entry(Dict* dict, char* key); 
+int dict_detatch_entry(Dict* d, char* key);
 #define dict_get_val(...) DICT_GET_VAL(__VA_ARGS__, NULL)
 #define dict_get_type(...) DICT_GET_TYPE(__VA_ARGS__, NULL)
 #define dict_override_type(...) DICT_OVERRIDE_TYPE(__VA_ARGS__, NULL)
@@ -31,7 +32,7 @@ int dict_remove_entry(Dict* dict, char* key);
 		int: T_INT, double: T_DOUBLE, char: T_CHAR, \
 		int*: T_POINT_INT, char*: T_POINT_CHAR, double*: T_POINT_DOUBLE, struct _dict*: T_DICT, default: T_POINT_VOID)
 
-#define dict_put(DICT_PUT_dct,DICT_PUT_key,DICT_PUT_val) ({typeof(DICT_PUT_val) DICT_PUT_PARSED_val = DICT_PUT_val; DICT_PUT(DICT_PUT_dct,DICT_PUT_key,DICT_PUT_PARSED_val,TO_TYPE(DICT_PUT_PARSED_val));})
+#define dict_put(DICT_PUT_dct,DICT_PUT_key,DICT_PUT_val) ({__typeof__(DICT_PUT_val) DICT_PUT_PARSED_val = DICT_PUT_val; DICT_PUT(DICT_PUT_dct,DICT_PUT_key,DICT_PUT_PARSED_val,TO_TYPE(DICT_PUT_PARSED_val));})
 
 #else
 #include <stdio.h>

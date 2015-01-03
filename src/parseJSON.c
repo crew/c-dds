@@ -73,8 +73,19 @@ pie *parse_pie(cJSON *raw_pie) {
     return to_ret;
 }
 
+pie *parse_pie_dict_val(void *raw_pie) {
+	char *name = DYN_STR((char*)raw_pie);
+    pie *to_ret = malloc(sizeof(pie) + sizeof(name));
+    to_ret->name = name;
+    return to_ret;
+}
+
 // In case we need to do anything fancy down the road
 char *pie_to_json(pie *parsed_pie) {
+    return parsed_pie->name;
+}
+
+char *pie_to_dict_val(pie *parsed_pie) {
     return parsed_pie->name;
 }
 
@@ -117,6 +128,37 @@ cJSON *action_data_to_json(action_data *to_parse){
 	return to_ret;
 }
 
+action_data *parse_dict_action_data(Dict *raw_action_data){
+	action_data *to_ret = malloc(sizeof(action_data));
+	char *action_type = (char*)dict_get_val(raw_action_data,"type");//cJSON_GetObjectItem(raw_action_data, "type")->valuestring;
+	if(!strcmp(action_type,"slide")){
+		to_ret->type = ADT_SLIDE;
+		to_ret->slide_data = make_slide_action_info(
+				*(int*)dict_get_val(raw_action_data,"ID"),
+				DYN_STR((char*)dict_get_val(raw_action_data,"location")),
+				*(int*)dict_get_val(raw_action_data,"duration")
+		);
+		return to_ret;
+	}
+	printf("parse_action_data: WARNING: Given unimplemented slide action. Returning Null Pointer.\n");
+	return NULL;
+}
+
+Dict *action_data_to_dict(action_data *to_parse){
+	Dict *to_ret = make_dict();
+	switch(to_parse->type){
+	case ADT_SLIDE:
+		dict_put(to_ret, "type", "slide");
+		dict_put(to_ret, "ID", DYN_NON_POINT(to_parse->slide_data->id));
+		dict_put(to_ret, "location", DYN_STR(to_parse->slide_data->location));
+		dict_put(to_ret, "duration", DYN_NON_POINT(to_parse->slide_data->duration));
+		break;
+	default:
+		break;
+	}
+	return to_ret;
+}
+
 void parse_actions(cJSON *raw_actions, socket_message_content *receiver){
 	int len = cJSON_GetArraySize(raw_actions);
 	receiver->num_actions = len;
@@ -133,12 +175,43 @@ void parse_actions(cJSON *raw_actions, socket_message_content *receiver){
 	return;
 }
 
+void parse_actions_dict(Dict *raw_actions, socket_message_content *receiver){
+	int len = dict_size(raw_actions);
+	receiver->num_actions = len;
+	receiver->actions = malloc(len * sizeof(action_data *));
+	// Check if something went wrong
+	if (receiver->actions == NULL) {
+	    syslog(LOG_MAKEPRI(LOG_SYSLOG, LOG_ERR), "parse_actions: Could not allocate actions array for received message's content\n");
+	    return;
+	}
+	int i;
+	char *key = malloc(6 * sizeof(char));
+	for(i = 0; i < len; i++){
+		sprintf(key,"%d",i);
+		receiver->actions[i] = parse_dict_action_data((Dict*)dict_get_val(raw_actions,key));
+	}
+	free(key);
+	return;
+}
+
 cJSON *actions_to_json(action_data *actions[], int num_actions){
 	cJSON *to_ret = cJSON_CreateArray();
 	int i;
 	for(i = 0; i < num_actions; i ++){
 		cJSON_AddItemToArray(to_ret, action_data_to_json(actions[i]));
 	}
+	return to_ret;
+}
+
+Dict *actions_to_dict(action_data *actions[], int num_actions){
+	Dict *to_ret = make_dict();
+	int i;
+	char *key = malloc(6 * sizeof(char));
+	for(i = 0; i < num_actions; i ++){
+		sprintf(key,"%d",i);
+		dict_put(to_ret, DYN_STR(key),action_data_to_dict(actions[i]));
+	}
+	free(key);
 	return to_ret;
 }
 
@@ -464,34 +537,32 @@ socket_message *json_to_message(char *str) {
     	content = cJSON_Parse(content->valuestring);
     }
     socket_message_content *msg_c = (socket_message_content *) malloc(sizeof(socket_message_content));
-    parse_actions(cJSON_GetObjectItem(content,"actions"),msg_c);
+    parse_actions_dict((Dict*)dict_get_val(input_dict,"content","actions"),msg_c);
     if (dict_has_key((Dict*)dict_get_val(input_dict,"content"),"meta")){
-    	// This is a tiny bit more CPU-taxing, but will help reduce memory footprint
-    	Dict *persist_meta = malloc(sizeof((Dict*)dict_get_val(input_dict,"content","meta")));
-    	memcpy(persist_meta,dict_get_val(input_dict,"content","meta"),sizeof((Dict*)dict_get_val(input_dict,"content","meta")));
-    	msg_c->meta = persist_meta;
-    	dict_remove_entry(input_dict,"content");
-        free(input_dict);
+    	msg_c->meta = (Dict*)dict_get_val(input_dict,"content","meta");
+    	dict_detatch_entry((Dict*)dict_get_val(input_dict,"content"),"meta");
     }
     else{
     	printf("No meta found.\n");
     	msg_c->meta = NULL;
-        delete_dict_and_contents(input_dict);
     }
     socket_message *msg = (socket_message *) malloc(sizeof(socket_message));
     msg->datetime = malloc(sizeof(struct tm));
-    if(cJSON_GetObjectItem(input, "datetime")->type != cJSON_NULL){
-    	parse_date(cJSON_GetObjectItem(input, "datetime")->valuestring, msg->datetime);
-    }else{
-	free(msg->datetime);
+    if(dict_get_type(input_dict,"datetime") != T_NULL){
+    	parse_date((char*)dict_get_val(input_dict,"datetime"),msg->datetime);
+    }
+    else{
+    	free(msg->datetime);
     	msg->datetime = NULL;
     }
-    msg->action = parse_action(cJSON_GetObjectItem(input, "action")->valuestring);
+    msg->action = parse_action((char*)dict_get_val(input_dict,"action"));
     msg->content = msg_c;
-    msg->src = parse_pie(cJSON_GetObjectItem(input, "src"));
-    msg->dest = parse_pie(cJSON_GetObjectItem(input, "dest"));
-    msg->plugin_dest = cJSON_GetObjectItem(input, "pluginDest")->valuestring;
+    msg->src = parse_pie_dict_val(dict_get_val(input_dict,"src"));
+    msg->dest = parse_pie_dict_val(dict_get_val(input_dict,"dest"));
+    msg->plugin_dest = DYN_STR((char*)dict_get_val(input_dict,"pluginDest"));
     cJSON_Delete(input);
+    dump_dict(input_dict);
+    delete_dict_and_contents(input_dict);
     return msg;
 }
 
@@ -546,13 +617,11 @@ void delete_socket_message(socket_message *m){
     free(m->content);
     free(m->datetime);
 	if(m->src){
-        //TODO we should not make the value in the struct a pointer
-        //We can't free non malloc'ed memory and most of the time we are just puting literal strings
-        //in there
+		free(m->src->name);
 		free(m->src);
 	}
 	if(m->dest){
-        //TODO see src comment above
+		free(m->dest->name);
 		free(m->dest);
 	}
 	m->content = NULL;
@@ -560,89 +629,6 @@ void delete_socket_message(socket_message *m){
 	m->src = NULL;
 	m->dest = NULL;
 	free(m);
-}
-
-void dump_meta_atom(socket_meta *mem, int indents);
-void dump_meta_dict(Dict *d, int indents);
-
-void dump_meta_dict(Dict *d, int indents){
-	int i = 0;
-	char tabs[indents + 1];
-	for(;i<indents;i++){
-		tabs[i] = '\t';
-	}
-	tabs[indents] = '\0';
-	int len = dict_size(d);
-	i = 0;
-	Dict *temp = d;
-	for(;i<=len;i++){
-		printf("%s%s\t: ",tabs,temp->key);
-		dump_meta_atom((socket_meta *)temp->value, indents);
-		printf((i < len-1) ? ",\n" : "\n");
-		temp = temp->next;
-	}
-}
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
-void dump_meta_atom(socket_meta *mem, int indents){
-	int i = 0;
-	char tabs[indents + 1];
-	for(;i<indents;i++){
-		tabs[i] = '\t';
-	}
-	tabs[indents] = '\0';
-	if(mem->type == T_INT){
-		printf("%d",*(int *)mem->value);
-	}
-	else if(mem->type == T_DOUBLE){
-		printf("%f",*(double *)mem->value);
-	}
-	else if(mem->type == T_CHAR){
-		printf("%c",*(char *)mem->value);
-	}
-	else if(mem->type == T_POINT_INT){
-		printf("%d (0x%x)", *(int *)mem->value, (int)mem->value);
-	}
-	else if(mem->type == T_POINT_CHAR){
-		printf("%s (0x%x)", (char *)mem->value, (int)mem->value);
-	}
-	else if(mem->type == T_POINT_VOID){
-		printf("<void pointer>");
-	}
-	else if(mem->type == T_ARR){
-		printf("Array: [\n");
-		dump_meta_dict(((Dict*)mem->value)->next, indents + 1);
-		printf("%s\t\t]",tabs);
-	}
-	else if(mem->type == T_DICT){
-		printf("Object: {\n");
-		dump_meta_dict(((Dict*)mem->value)->next, indents + 1);
-		printf("%s\t\t}",tabs);
-	}
-}
-#pragma GCC diagnostic pop
-
-void dump_meta(Dict *meta){
-	printf("meta: {\n");
-	dump_meta_dict(meta->next, 1);
-	printf("}\n");
-}
-
-Dict *meta_to_dict(Dict *meta){
-	if (meta == NULL){return NULL;}
-	Dict *to_ret = malloc(sizeof(*meta));
-	memcpy(to_ret,meta,sizeof(*meta));
-	if(to_ret->value != NULL){
-		if ((((socket_meta*)to_ret->value)->type == T_ARR) || (((socket_meta*)to_ret->value)->type == T_DICT)){
-			to_ret->value = meta_to_dict((Dict *)((socket_meta*)meta->value)->value);
-		}
-		else{
-			to_ret->value = ((socket_meta*)to_ret->value)->value;
-		}
-	}
-	to_ret->next = meta_to_dict(meta->next);
-	return to_ret;
 }
 
 /*
@@ -658,9 +644,12 @@ int main() {
     #define DT_BUF_SIZE 27
     char dt[ DT_BUF_SIZE ];
     strftime(dt, sizeof(dt), "%Y-%m-%dT%H:%M:%S%z", sm->datetime);
-    printf("sm:\ndatetime: %s\naction: %s\nsrc: %s\ndest: %s\ncontent:\n\t\n...\n",
+    printf("sm:\ndatetime: %s\naction: %s\nsrc: %s\ndest: %s\n",
             dt, action_string(sm->action), sm->src->name, sm->dest->name);
-
+    if(sm->content->meta){
+    	printf("meta:\n\t\n...\n");
+    	dump_dict(sm->content->meta);
+    }
     printf("back again:\n%s\n", message_to_json(sm));
 }*/
 
