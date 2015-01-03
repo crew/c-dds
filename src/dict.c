@@ -17,7 +17,10 @@ Dict* make_dict(void){
 int dict_size(Dict* d){
 	if(d->type == T_POINT_CHAR){
 		printf("Size of %s : %s\n", d->key, (char*)d->value);
-	}
+	}else{
+        printf("Deleting entry with key %s\n", d->key);
+    }
+    
 	if(d->next == NULL){
 		return 0;
 	}
