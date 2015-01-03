@@ -513,7 +513,9 @@ void delete_socket_message(socket_message *m){
         if(!m->content->meta){
             printf("Meta is not null...\n");
         }
+        printf("Deleting dict and contents...\n");
         delete_dict_and_contents(m->content->meta);
+        printf("Doing actions stuff....\n");
 		if(m->content->actions){
 			int i = 0;
 			for(;i < m->content->num_actions;i++){
@@ -535,11 +537,11 @@ void delete_socket_message(socket_message *m){
         //TODO we should not make the value in the struct a pointer
         //We can't free non malloc'ed memory and most of the time we are just puting literal strings
         //in there
-		free(m->src);
+		//free(m->src);
 	}
 	if(m->dest){
         //TODO see src comment above
-		free(m->dest);
+		//free(m->dest);
 	}
 	m->content = NULL;
 	m->datetime = NULL;
