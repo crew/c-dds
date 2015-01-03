@@ -510,7 +510,10 @@ char *message_to_json(socket_message *msg) {
 
 void delete_socket_message(socket_message *m){
 	if (m->content){
-        delete_dict(m->content->meta);
+        if(!m->content->meta){
+            printf("Meta is not null...\n");
+        }
+        delete_dict_and_contents(m->content->meta);
 		if(m->content->actions){
 			int i = 0;
 			for(;i < m->content->num_actions;i++){
