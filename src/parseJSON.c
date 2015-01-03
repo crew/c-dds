@@ -537,11 +537,11 @@ void delete_socket_message(socket_message *m){
         //TODO we should not make the value in the struct a pointer
         //We can't free non malloc'ed memory and most of the time we are just puting literal strings
         //in there
-		//free(m->src);
+		free(m->src);
 	}
 	if(m->dest){
         //TODO see src comment above
-		//free(m->dest);
+		free(m->dest);
 	}
 	m->content = NULL;
 	m->datetime = NULL;
