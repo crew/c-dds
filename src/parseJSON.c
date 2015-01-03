@@ -462,12 +462,13 @@ socket_message *json_to_message(char *str) {
     	memcpy(persist_meta,dict_get_val(input_dict,"content","meta"),sizeof((Dict*)dict_get_val(input_dict,"content","meta")));
     	msg_c->meta = input_dict;
     	dict_remove_entry(input_dict,"content");
-    	free(input_dict);
+    	
     }
     else{
     	printf("No meta found.\n");
     	msg_c->meta = NULL;
     }
+    free(input_dict);
     socket_message *msg = (socket_message *) malloc(sizeof(socket_message));
     msg->datetime = malloc(sizeof(struct tm));
     if(cJSON_GetObjectItem(input, "datetime")->type != cJSON_NULL){
