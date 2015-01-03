@@ -458,11 +458,11 @@ socket_message *json_to_message(char *str) {
     parse_actions(cJSON_GetObjectItem(content,"actions"),msg_c);
     if (dict_has_key((Dict*)dict_get_val(input_dict,"content"),"meta")){
     	// This is a tiny bit more CPU-taxing, but will help reduce memory footprint
-    	Dict *persist_meta = malloc(sizeof((Dict*)dict_get_val(input_dict,"content","meta")));
-    	memcpy(persist_meta,dict_get_val(input_dict,"content","meta"),sizeof((Dict*)dict_get_val(input_dict,"content","meta")));
-    	msg_c->meta = persist_meta;
-    	dict_remove_entry(input_dict,"content");
-    	free(input_dict);
+    	//Dict *persist_meta = malloc(sizeof((Dict*)dict_get_val(input_dict,"content","meta")));
+    	//memcpy(persist_meta,dict_get_val(input_dict,"content","meta"),sizeof((Dict*)dict_get_val(input_dict,"content","meta")));
+    	msg_c->meta = input_dict;
+    	//dict_remove_entry(input_dict,"content");
+    	//free(input_dict);
     }
     else{
     	printf("No meta found.\n");
