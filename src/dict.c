@@ -36,6 +36,9 @@ void del_last(Dict* d, int freeContents){
 		beforeLast = index;
 		index = index->next;
 	}
+    if(index->type == T_POINT_CHAR){
+        printf("Removing last element with %s:%s\n", index->key, index->value);
+    }
 	if(freeContents){
         if(index->type == T_DICT){
             delete_dict_and_contents((Dict*)index->value);
@@ -135,6 +138,9 @@ void* DICT_GET_VAL(Dict* d, ...){
 	return ret;*/
 }
 void* DICT_PUT(Dict* d, char* key, void* val, VAL_TYPE vtype){
+    if(vtype == T_POINT_CHAR){
+        printf("Adding %s:%s\n",key, (char*)val);
+    }
 	if(d->next == NULL){
 		d->next = make_dict_with(key, val);
 		d->next->type = vtype;
@@ -196,6 +202,7 @@ int dict_remove_entry(Dict* d, char* key){
 	while(index != NULL){
 		if(!strcmp(key, index->key)){
 			prev->next = index->next;
+            //TODO might need to do some more free-ing here, or we could leave it up to user
 			free(index);
 			return 1;
 		}
