@@ -15,14 +15,8 @@ Dict* make_dict(void){
 	return make_dict_with(NULL,NULL);
 }
 int dict_size(Dict* d){
-    printf("Recieved dict* %p\n", d);
-	if(d->type == T_POINT_CHAR){
-		printf("Size of %s : %s\n", d->key, (char*)d->value);
-	}else{
-        printf("Deleting entry with key %s\n", d->key);
-    }
-    
-	if(d->next == NULL){
+    //|VVVVVVVVVV|  This seems like a bug? I don't think we should ever be trying to size a NULL dict....
+	if(d == NULL || d->next == NULL){
 		return 0;
 	}
 	Dict* i = d->next;
