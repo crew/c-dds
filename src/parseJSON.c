@@ -328,7 +328,7 @@ Dict *cJSON_to_dict(cJSON *raw_cJSON){
 			arr_idx++;
 		}
 		else{
-			arr_key = cur->string;
+			arr_key = DYN_STR(cur->string);
 		}
 		if((cur->type == cJSON_Array) || (cur->type == cJSON_Object)){
 			Dict *d = cJSON_to_dict(cur->child);

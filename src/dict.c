@@ -42,7 +42,10 @@ void del_last(Dict* d, int freeContents){
             delete_dict_and_contents((Dict*)index->value);
         }
 		free(index->key);
-		free(index->value);
+		// index->value is parameter on _delete_dict,
+		//   which already frees it, so this is a double
+		//   free
+		//free(index->value);
 		index->key = NULL;
 		index->value = NULL;
 	}

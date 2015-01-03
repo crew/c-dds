@@ -37,7 +37,7 @@ gboolean gtk_update_page(void* arg_void){
 	return TRUE;
 }
 void interrupt_p(){
-	printf("Interrupt signal recieved...\n");
+	printf("\n(Parent | PID %d) Interrupt signal received...\n",getpid());
 	wait(NULL);
 	if(global_sock != NULL){
 		close_connection(global_sock);
@@ -47,6 +47,7 @@ void interrupt_p(){
 	exit(SIGINT);
 }
 void interrupt_c(){
+	printf("\n(Child  | PID %d) Interrupt signal received...\n",getpid());
 	close_dds_sem(global_args->lock);
 	shmdt(global_args->cur_url);
 	_Exit(SIGINT);
