@@ -224,7 +224,7 @@ void recursive_parse(cJSON *current, Dict *d, int arr_idx) {
             }
     }
     if(current->string) {
-        dict_put(d, current->string, (void *)parsed);
+        dict_put(d, DYN_STR(current->string), (void *)parsed);
     }
     else{
     	char *arr_key = (char*)malloc(6 * sizeof(char)); // Limit array length to 1,000,000
@@ -235,6 +235,7 @@ void recursive_parse(cJSON *current, Dict *d, int arr_idx) {
     dct = *(d);
     while(dct.next){dct = *dct.next;}
     recursive_parse(current->next, d, ((arr_idx == -1) ? -1 : arr_idx + 1));
+    
 }
 
 Dict *parse_json_meta(cJSON *raw_meta) {
@@ -337,7 +338,7 @@ Dict *cJSON_to_dict(cJSON *raw_cJSON){
 		}
 		else{
 			if(cur->type == cJSON_String){
-				dict_put(dct, arr_key, cur->valuestring);
+				dict_put(dct, arr_key, DYN_STR(cur->valuestring));
 			}
 			else if(cur->type == cJSON_Number && ((double)cur->valueint != cur->valuedouble)){
 				double *to_put = malloc(sizeof(cur->valuedouble));
@@ -364,12 +365,12 @@ void recursive_dict_to_cJSON(cJSON *add_to, Dict *d, _Bool adding_to_array){
 		case T_DOUBLE:
 			cJSON_AddNumberToArray(add_to,*(double *)d->value);
 			break;
-		case T_CHAR:;
+		case T_CHAR:
 			char to_add[] = {*(char *)d->value, '\0'};
-			cJSON_AddStringToArray(add_to,to_add);
+			cJSON_AddStringToArray(add_to,DYN_STR(to_add));
 			break;
 		case T_POINT_CHAR:
-			cJSON_AddStringToArray(add_to,(char*)d->value);
+			cJSON_AddStringToArray(add_to,DYN_STR((char*)d->value));
 			break;
 		case T_POINT_INT:
 			cJSON_AddNumberToArray(add_to,*(int*)d->value);
@@ -401,10 +402,10 @@ void recursive_dict_to_cJSON(cJSON *add_to, Dict *d, _Bool adding_to_array){
 			break;
 		case T_CHAR:;
 			char to_add[] = {*(char *)d->value, '\0'};
-			cJSON_AddStringToObject(add_to,d->key, to_add);
+			cJSON_AddStringToObject(add_to,d->key, DYN_STR(to_add));
 			break;
 		case T_POINT_CHAR:
-			cJSON_AddStringToObject(add_to,d->key, (char*)d->value);
+			cJSON_AddStringToObject(add_to,d->key, DYN_STR((char*)d->value));
 			break;
 		case T_POINT_INT:
 			cJSON_AddNumberToObject(add_to,d->key, *(int*)d->value);
@@ -443,7 +444,7 @@ socket_message *json_to_message(char *str) {
     if(dict_get_type(input_dict,"content") == T_POINT_CHAR){
     	cJSON *ctemp = cJSON_Parse((char*)dict_get_val(input_dict,"content"));
     	dict_remove_entry(input_dict,"content");
-    	dict_put(input_dict,"content",cJSON_to_dict(ctemp->child));
+    	dict_put(input_dict,DYN_STR("content"),cJSON_to_dict(ctemp->child));
     	cJSON_Delete(ctemp);
     }
     printf("\n\n");
