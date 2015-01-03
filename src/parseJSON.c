@@ -366,8 +366,10 @@ void recursive_dict_to_cJSON(cJSON *add_to, Dict *d, _Bool adding_to_array){
 			cJSON_AddNumberToArray(add_to,*(double *)d->value);
 			break;
 		case T_CHAR:
-			char to_add[] = {*(char *)d->value, '\0'};
-			cJSON_AddStringToArray(add_to,DYN_STR(to_add));
+			char* to_add = (char*)malloc(2);
+            to_add[0] = *(char *)d->value;
+            to_add[1] = '\0';
+			cJSON_AddStringToArray(add_to,to_add);
 			break;
 		case T_POINT_CHAR:
 			cJSON_AddStringToArray(add_to,DYN_STR((char*)d->value));
