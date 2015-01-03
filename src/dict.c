@@ -15,6 +15,9 @@ Dict* make_dict(void){
 	return make_dict_with(NULL,NULL);
 }
 int dict_size(Dict* d){
+	if(d->type == T_POINT_CHAR){
+		printf("Size of %s : %s\n", d->key, (char*)d->value);
+	}
 	if(d->next == NULL){
 		return 0;
 	}
