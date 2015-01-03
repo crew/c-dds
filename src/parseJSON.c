@@ -481,6 +481,7 @@ socket_message *json_to_message(char *str) {
     msg->src = parse_pie(cJSON_GetObjectItem(input, "src"));
     msg->dest = parse_pie(cJSON_GetObjectItem(input, "dest"));
     msg->plugin_dest = cJSON_GetObjectItem(input, "pluginDest")->valuestring;
+    cJSON_Delete(input);
     return msg;
 }
 

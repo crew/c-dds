@@ -34,6 +34,9 @@ void del_last(Dict* d, int freeContents){
 		index = index->next;
 	}
 	if(freeContents){
+        if(index->type == T_DICT){
+            delete_dict_and_contents((Dict*)index->value);
+        }
 		free(index->key);
 		free(index->value);
 		index->key = NULL;
