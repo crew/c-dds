@@ -9,6 +9,12 @@
 Dict* make_dict_with(char* key, void* value){
 	Dict* d = (Dict*) malloc(sizeof(Dict));
 	// Make sure that the key has been malloc-ed
+	int ret = key==NULL || in_heap(key);
+	if(ret){
+		printf("Found key in heap...\n");
+	}else{
+		printf("Didn't find key in heap...\n");
+	}
 	char *true_key = (key == NULL || in_heap(key)) ? key : DYN_STR(key);
 	d->key = true_key;
 	d->value = value;
@@ -46,11 +52,12 @@ void del_last(Dict* d, int freeContents){
         printf("Removing last element with %s:%s\n", index->key, (char*)index->value);
     }
 	if(freeContents){
-        if(index->type == T_DICT){
+		printf("Freeing dict with type %d\n",index->type);
+        if(index->type == T_DICT || index->type == T_ARR){
             delete_dict_and_contents((Dict*)index->value);
         }
         else{
-        	if(index->type != T_NULL){free(index->value);}
+        	free(index->value);
         }
 		free(index->key);
 

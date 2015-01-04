@@ -401,6 +401,7 @@ Dict *cJSON_to_dict(cJSON *raw_cJSON){
 			arr_idx++;
 		}
 		else{
+			printf("Making key using DYN_STR...\n");
 			arr_key = DYN_STR(cur->string);
 		}
 		if((cur->type == cJSON_Array) || (cur->type == cJSON_Object)){
@@ -588,7 +589,53 @@ char *message_to_json(socket_message *msg) {
     cJSON_Delete(root);
     return ret;
 }
+inline static void del_meta(Dict* tdel){
+	if(tdel->type == T_ARR || tdel->type == T_DICT){
+		delete_dict_and_contents(tdel->value);
+	}else{
+		free(tdel->value);
+	}
+}
+inline static void del_action_data(action_data* action){
+	if(action->type == ADT_SLIDE){
+		free(action->slide_data->location);
+	}else{
+		printf("Uknown action type...\n");
+	}
+}
+inline static void del_actions(action_data** actions, int num){
+	for(--num;num >= 0;num--){
+		del_action_data(actions[num]);
+	}
+	free(actions);
+}
 
+inline static void del_content(socket_message_content* tdel){
+	if(tdel){
+		del_meta(tdel->meta);
+		del_actions(tdel->actions, tdel->num_actions);
+	}
+	free(tdel);
+}
+
+inline static void del_pie_struct(pie* p){
+	if(p){
+		free(p->name);
+	}
+	free(p);
+}
+inline static void del_tm(struct tm* dt){
+	free(dt);
+}
+void delete_socket_message(socket_message* m){
+	del_tm(m->datetime);
+	free(m->plugin_dest);
+	del_content(m->content);
+	del_pie_struct(m->src);
+	del_pie_struct(m->dest);
+	free(m);
+}
+/*
 void delete_socket_message(socket_message *m){
 	if (m->content){
         if(!m->content->meta){
@@ -630,6 +677,7 @@ void delete_socket_message(socket_message *m){
 	m->dest = NULL;
 	free(m);
 }
+*/
 
 /*
 //Testing function...compile with gcc parseJSON.c cJSON.c dict.c -lm -lrt
