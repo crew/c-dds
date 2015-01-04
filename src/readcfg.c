@@ -12,6 +12,12 @@ char* next_line(FILE* f){
 	if(p == NULL){
 		return NULL;
 	}
+	if(p[0] == '\n'){
+		char* newStr = (char*)malloc(2);
+		newStr[0] = '\n';
+		newStr[1] = '\0';
+		return newStr;
+	}
 	int len = strlen(p);
 	if(p[len - 1] == '\n'){
 		p[--len] = '\0';
@@ -39,6 +45,10 @@ int add_split_to_dict(Dict* d, FILE* f){
 	char* line = next_line(f);
 	if(line == NULL){
 		return 0;
+	}
+	if(line[0] == '\n'){
+		free(line);
+		return 1;
 	}
 	int wholeLineLen = strlen(line);
 	strtok(line, "=");

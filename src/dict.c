@@ -4,10 +4,13 @@
 #include <string.h>
 #include <stdarg.h>
 #include <signal.h>
+#include "dds-globals.h"
 //PASSED MEMORY CHECKS (ASSUMING KEYS ARE ALSO MALLOC'ED)
 Dict* make_dict_with(char* key, void* value){
 	Dict* d = (Dict*) malloc(sizeof(Dict));
-	d->key = key;
+	// Make sure that the key has been malloc-ed
+	char *true_key = (key == NULL || in_heap(key)) ? key : DYN_STR(key);
+	d->key = true_key;
 	d->value = value;
 	if(!key && !value){d->type = T_NULL;} // Empty dictionary
 	d->next = NULL;
