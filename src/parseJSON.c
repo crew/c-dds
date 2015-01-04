@@ -652,91 +652,14 @@ int main() {
     }
     printf("back again:\n%s\n", message_to_json(sm));
 }*/
-
+/*
 #ifdef ___TEST_SUITES___
 
 /*
  * TEST SUITES
  */
+/*
 
-void TestParseAction(CuTest *tc){
-	CuAssertTrue(tc,parse_action("add-slide") == ADD_SLIDE);
-	CuAssertTrue(tc,parse_action("delete-slide") == DELETE_SLIDE);
-	CuAssertTrue(tc,parse_action("edit-slide") == EDIT_SLIDE);
-	CuAssertTrue(tc,parse_action("Terminate") == TERMINATE);
-	CuAssertTrue(tc,parse_action("load-slides") == LOAD_SLIDES);
-	CuAssertTrue(tc,parse_action("connect") == CONNECT);
-}
-
-void TestActionString(CuTest *tc){
-	CuAssertStrEquals(tc,"add-slide",action_string(ADD_SLIDE));
-	CuAssertStrEquals(tc,"delete-slide",action_string(DELETE_SLIDE));
-	CuAssertStrEquals(tc,"edit-slide",action_string(EDIT_SLIDE));
-	CuAssertStrEquals(tc,"Terminate",action_string(TERMINATE));
-	CuAssertStrEquals(tc,"load-slides",action_string(LOAD_SLIDES));
-	CuAssertStrEquals(tc,"connect",action_string(CONNECT));
-}
-
-void TestParsePie(CuTest *tc){
-	cJSON *test_cjson1 = cJSON_CreateString("keylime");
-	cJSON *test_cjson2 = cJSON_CreateString("chocolate");
-	pie *p1 = parse_pie(test_cjson1);
-	pie *p2 = parse_pie(test_cjson2);
-	CuAssertStrEquals(tc,p1->name,"keylime");
-	CuAssertStrEquals(tc,p2->name,"chocolate");
-	cJSON_Delete(test_cjson1);
-	cJSON_Delete(test_cjson2);
-	free(p1);
-	free(p2);
-}
-
-void TestPieToJson(CuTest *tc){
-	pie p1 = (pie){"keylime"};
-	pie p2 = (pie){"chocolate"};
-	char *test_json1 = pie_to_json(&p1);
-	char *test_json2 = pie_to_json(&p2);
-	CuAssertStrEquals(tc,test_json1,"keylime");
-	CuAssertStrEquals(tc,test_json2,"chocolate");
-}
-
-void TestMakeSlideActionInfo(CuTest *tc){
-	slide_action_info *test = make_slide_action_info(193,"localhost",27);
-	CuAssertIntEquals(tc,test->id,193);
-	CuAssertStrEquals(tc,test->location,"localhost");
-	CuAssertIntEquals(tc,test->duration,27);
-	free(test);
-}
-
-void TestParseActionData(CuTest *tc){
-	cJSON *test1 = cJSON_CreateObject();
-	cJSON *test2 = cJSON_CreateObject();
-	cJSON_AddStringToObject(test1,"type","slide");
-	cJSON_AddStringToObject(test2,"type","attempted-stack-smash");
-	cJSON_AddNumberToObject(test1,"ID",193);
-	cJSON_AddStringToObject(test1,"location","localhost");
-	cJSON_AddNumberToObject(test1,"duration",27);
-	action_data to_comp = (action_data){ADT_SLIDE,make_slide_action_info(193,"localhost",27)};
-	action_data *testp1 = parse_action_data(test1);
-	action_data *testp2 = parse_action_data(test2);
-	CuAssertTrue(tc,((testp1->type == ADT_SLIDE) && (to_comp.type == ADT_SLIDE)));
-	CuAssertIntEquals(tc,testp1->slide_data->id,to_comp.slide_data->id);
-	CuAssertStrEquals(tc,testp1->slide_data->location,to_comp.slide_data->location);
-	CuAssertIntEquals(tc,testp1->slide_data->duration,to_comp.slide_data->duration);
-	CuAssertPtrEquals(tc,testp2,NULL);
-	cJSON_Delete(test1);
-	cJSON_Delete(test2);
-	free(testp1);
-	free(testp2);
-}
-
-CuSuite *ParseJSONGetSuite(void){
-	CuSuite *suite = CuSuiteNew();
-	SUITE_ADD_TEST(suite,TestParseAction);
-	SUITE_ADD_TEST(suite,TestActionString);
-	SUITE_ADD_TEST(suite,TestParsePie);
-	SUITE_ADD_TEST(suite,TestPieToJson);
-	SUITE_ADD_TEST(suite,TestMakeSlideActionInfo);
-	return suite;
-}
 
 #endif
+*/
