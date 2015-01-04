@@ -48,22 +48,21 @@ void del_last(Dict* d, int freeContents){
 		beforeLast = index;
 		index = index->next;
 	}
-    if(index->type == T_POINT_CHAR){
-        printf("Removing last element with %s:%s\n", index->key, (char*)index->value);
-    }
-	if(freeContents){
+	if(index->type == T_POINT_CHAR){
+        	printf("Removing last element with %s:%s\n", index->key, (char*)index->value);
+    	}
+    	if(freeContents){
 		printf("Freeing dict with type %d\n",index->type);
-        if(index->type == T_DICT || index->type == T_ARR){
-            delete_dict_and_contents((Dict*)index->value);
-        }
-        else{
-        	free(index->value);
-        }
+        	if(index->type == T_DICT || index->type == T_ARR){
+            		delete_dict_and_contents((Dict*)index->value);
+        	}
+        	else{
+        		free(index->value);
+        	}
 		free(index->key);
-
 		index->key = NULL;
 		index->value = NULL;
-	}
+    	}
 	free(index);
 	beforeLast->next = NULL;
 }
