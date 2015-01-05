@@ -394,37 +394,37 @@ Dict *cJSON_to_dict(cJSON *raw_cJSON){
 	_Bool is_array = !cur->string;
 	int arr_idx = 0;
 	while(cur != NULL){
-		char *arr_key = NULL;
+		char **arr_key = malloc(sizeof(char*));
 		if (is_array){
-			arr_key = (char*)malloc(6 * sizeof(char)); // Limit array length to 1,000,000
-			sprintf(arr_key,"%d",arr_idx);
+			*arr_key = (char*)malloc(6 * sizeof(char)); // Limit array length to 1,000,000
+			sprintf(*arr_key,"%d",arr_idx);
 			arr_idx++;
 		}
 		else{
-			arr_key = DYN_STR(cur->string);
+			*arr_key = DYN_STR(cur->string);
 		}
 		if((cur->type == cJSON_Array) || (cur->type == cJSON_Object)){
 			Dict *d = cJSON_to_dict(cur->child);
-			dict_put(dct, arr_key, d);
+			dict_put(dct, *arr_key, d);
 			//DICT_PUT(dct, arr_key, cJSON_to_dict(cur->child), T_ARR);
-			if(cur->type == cJSON_Array){dict_override_type(dct,T_ARR,arr_key);}
+			if(cur->type == cJSON_Array){dict_override_type(dct,T_ARR,*arr_key);}
 		}
 		else if(cur->type == cJSON_NULL){
-			dict_put(dct,arr_key,NULL);
+			dict_put(dct,*arr_key,NULL);
 		}
 		else{
 			if(cur->type == cJSON_String){
-				dict_put(dct, arr_key, DYN_STR(cur->valuestring));
+				dict_put(dct, *arr_key, DYN_STR(cur->valuestring));
 			}
 			else if(cur->type == cJSON_Number && ((double)cur->valueint != cur->valuedouble)){
 				double *to_put = malloc(sizeof(cur->valuedouble));
 				*to_put = cur->valuedouble;
-				dict_put(dct, arr_key, to_put);
+				dict_put(dct, *arr_key, to_put);
 			}
 			else{
 				int *to_put = malloc(sizeof(cur->valueint));
 				*to_put = cur->valueint;
-				dict_put(dct, arr_key, to_put);
+				dict_put(dct, *arr_key, to_put);
 			}
 		}
 		cur = cur->next;
