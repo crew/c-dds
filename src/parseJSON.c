@@ -401,6 +401,7 @@ Dict *cJSON_to_dict(cJSON *raw_cJSON){
 			arr_idx++;
 		}
 		else{
+			printf("arr_key = %s\n", cur->string);
 			*arr_key = DYN_STR(cur->string);
 		}
 		if((cur->type == cJSON_Array) || (cur->type == cJSON_Object)){
