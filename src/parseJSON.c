@@ -397,8 +397,8 @@ Dict *cJSON_to_dict(cJSON *raw_cJSON){
 		//char **arr_key = malloc(sizeof(char*));
 		char buf[256];
 		buf[255] = '\0';
+		//TODO fix this gross crap...
 		char* tmp = buf;
-
 		char** arr_key = &tmp;
 		if (is_array){
 			//*arr_key = (char*)malloc(6 * sizeof(char)); // Limit array length to 1,000,000
