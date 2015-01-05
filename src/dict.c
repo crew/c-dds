@@ -44,12 +44,12 @@ void del_last(Dict* d, int freeContents){
 	}
     	if(freeContents){
         	if(index->type == T_DICT || index->type == T_ARR){
-            		delete_dict_and_contents((Dict*)index->value);
+			delete_dict_and_contents((Dict*)index->value);
         	}
         	else{
         		free(index->value);
 		}
-		printf("Freeing entry with key %s\n", index->key);
+		printf("Free %p\n", index->key);	
 		free(index->key);
 		index->key = NULL;
 		index->value = NULL;

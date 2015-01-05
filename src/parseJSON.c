@@ -394,18 +394,25 @@ Dict *cJSON_to_dict(cJSON *raw_cJSON){
 	_Bool is_array = !cur->string;
 	int arr_idx = 0;
 	while(cur != NULL){
-		char **arr_key = malloc(sizeof(char*));
+		//char **arr_key = malloc(sizeof(char*));
+		char buf[256];
+		buf[255] = '\0';
+		char* tmp = buf;
+
+		char** arr_key = &tmp;
 		if (is_array){
-			*arr_key = (char*)malloc(6 * sizeof(char)); // Limit array length to 1,000,000
-			sprintf(*arr_key,"%d",arr_idx);
+			//*arr_key = (char*)malloc(6 * sizeof(char)); // Limit array length to 1,000,000
+			sprintf(buf,"%d",arr_idx);
 			arr_idx++;
 		}
 		else{
-			printf("arr_key = %s\n", cur->string);
-			*arr_key = DYN_STR(cur->string);
+
+			 //*arr_key = DYN_STR(cur->string);
+			 strcpy(buf, cur->string);
 		}
 		if((cur->type == cJSON_Array) || (cur->type == cJSON_Object)){
 			Dict *d = cJSON_to_dict(cur->child);
+			
 			dict_put(dct, *arr_key, d);
 			//DICT_PUT(dct, arr_key, cJSON_to_dict(cur->child), T_ARR);
 			if(cur->type == cJSON_Array){dict_override_type(dct,T_ARR,*arr_key);}
@@ -428,8 +435,9 @@ Dict *cJSON_to_dict(cJSON *raw_cJSON){
 				dict_put(dct, *arr_key, to_put);
 			}
 		}
+		printf("%p\n", *arr_key);
 		cur = cur->next;
-		free(arr_key); //TODO why does this work?
+		//free(arr_key); //TODO why does this work?
 	}
 	return dct;
 }
