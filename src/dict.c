@@ -49,7 +49,6 @@ void del_last(Dict* d, int freeContents){
         	else{
         		free(index->value);
 		}
-		printf("Free %p\n", index->key);	
 		free(index->key);
 		index->key = NULL;
 		index->value = NULL;

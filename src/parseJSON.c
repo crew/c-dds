@@ -435,7 +435,6 @@ Dict *cJSON_to_dict(cJSON *raw_cJSON){
 				dict_put(dct, *arr_key, to_put);
 			}
 		}
-		printf("%p\n", *arr_key);
 		cur = cur->next;
 		//free(arr_key); //TODO why does this work?
 	}
@@ -541,7 +540,6 @@ socket_message *json_to_message(char *str) {
     	dict_put(input_dict,DYN_STR("content"),cJSON_to_dict(ctemp->child));
     	cJSON_Delete(ctemp);
     }
-    printf("\n\n");
     content = cJSON_GetObjectItem(input, "content");
     if(content->type == cJSON_String){
     	content = cJSON_Parse(content->valuestring);
