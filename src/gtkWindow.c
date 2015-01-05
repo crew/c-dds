@@ -11,10 +11,8 @@ static gboolean closeWebViewCb(WebKitWebView* webView, GtkWidget* window)
 	return TRUE;
 }
 WebKitWebView* *make_view(char* initPage){
-	int argc = 0;
-	char* argv = NULL;
 	// Initialize GTK+
-	 gtk_init(&argc, &argv);          
+	 gtk_init(NULL, NULL);          
 	// Create an 800x600 window that will contain the browser instance
 	GtkWidget *main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	//gtk_window_set_default_size(GTK_WINDOW(main_window), 800, 600);

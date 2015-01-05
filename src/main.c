@@ -36,17 +36,26 @@ gboolean gtk_update_page(void* arg_void){
 	release_dds_sem(global_args->lock);
 	return TRUE;
 }
-void interrupt_p(){
-	printf("\n(Parent | PID %d) Interrupt signal received...\n",getpid());
+static void terminate(int signal){
+	kill(gtk_id, SIGINT);
 	wait(NULL);
 	if(global_sock != NULL){
 		close_connection(global_sock);
 	}
 	final_close_sem(global_args->lock);
 	shmdt(global_args->cur_url);
-	exit(SIGINT);
+	exit(signal);
 }
-void interrupt_c(){
+static void segfault_p(){	
+	printf("\n(Parent | PID %d) Segmentation fault signal received...\n",getpid());
+	terminate(SIGSEGV);
+}
+static void interrupt_p(){
+	printf("\n(Parent | PID %d) Interrupt signal received...\n",getpid());
+	terminate(SIGINT);
+
+}
+static void interrupt_c(){
 	printf("\n(Child  | PID %d) Interrupt signal received...\n",getpid());
 	close_dds_sem(global_args->lock);
 	shmdt(global_args->cur_url);
@@ -133,7 +142,7 @@ int main(int argc, char** argv){
 		
 	}else{
 		signal(SIGINT, interrupt_p);
-
+		signal(SIGSEGV, interrupt_p);
 		slide_list slides = make_list((char*)dict_get_val(config, "init_page"), atoi((char*)dict_get_val(config, "init_duration")), -1);
 		 
 		char* url = dict_get_val(config, "server");
@@ -271,6 +280,7 @@ int main(int argc, char** argv){
 					delete_slide_with_id(slides, *((int*)id_m->value));
 				}else if(action == TERMINATE){
 					printf("Recieved the TERMINATE action... terminating...\n");
+
 					kill(gtk_id, SIGINT);
 					wait(NULL);
 					exit(0);
