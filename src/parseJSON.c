@@ -394,14 +394,13 @@ Dict *cJSON_to_dict(cJSON *raw_cJSON){
 	_Bool is_array = !cur->string;
 	int arr_idx = 0;
 	while(cur != NULL){
-		char *arr_key;
+		char *arr_key = NULL;
 		if (is_array){
 			arr_key = (char*)malloc(6 * sizeof(char)); // Limit array length to 1,000,000
 			sprintf(arr_key,"%d",arr_idx);
 			arr_idx++;
 		}
 		else{
-			printf("Making key using DYN_STR...\n");
 			arr_key = DYN_STR(cur->string);
 		}
 		if((cur->type == cJSON_Array) || (cur->type == cJSON_Object)){
@@ -429,6 +428,7 @@ Dict *cJSON_to_dict(cJSON *raw_cJSON){
 			}
 		}
 		cur = cur->next;
+		free(arr_key); //TODO why does this work?
 	}
 	return dct;
 }
@@ -544,7 +544,6 @@ socket_message *json_to_message(char *str) {
     	dict_detatch_entry((Dict*)dict_get_val(input_dict,"content"),"meta");
     }
     else{
-    	printf("No meta found.\n");
     	msg_c->meta = NULL;
     }
     socket_message *msg = (socket_message *) malloc(sizeof(socket_message));
@@ -562,7 +561,7 @@ socket_message *json_to_message(char *str) {
     msg->dest = parse_pie_dict_val(dict_get_val(input_dict,"dest"));
     msg->plugin_dest = DYN_STR((char*)dict_get_val(input_dict,"pluginDest"));
     cJSON_Delete(input);
-    dump_dict(input_dict);
+    //dump_dict(input_dict);
     delete_dict_and_contents(input_dict);
     return msg;
 }
@@ -590,18 +589,23 @@ char *message_to_json(socket_message *msg) {
     return ret;
 }
 inline static void del_meta(Dict* tdel){
-	if(tdel->type == T_ARR || tdel->type == T_DICT){
-		delete_dict_and_contents(tdel->value);
-	}else{
-		free(tdel->value);
+	if(tdel){
+		if(tdel->type == T_ARR || tdel->type == T_DICT){
+			delete_dict_and_contents(tdel->value);
+		}else{
+			free(tdel->value);
+		}
 	}
+	free(tdel);
 }
 inline static void del_action_data(action_data* action){
 	if(action->type == ADT_SLIDE){
 		free(action->slide_data->location);
+		free(action->slide_data);
 	}else{
 		printf("Uknown action type...\n");
 	}
+	free(action);
 }
 inline static void del_actions(action_data** actions, int num){
 	for(--num;num >= 0;num--){

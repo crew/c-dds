@@ -1,3 +1,4 @@
+#include "dds-globals.h"
 #include "parseJSON.h"
 
 int main(void){

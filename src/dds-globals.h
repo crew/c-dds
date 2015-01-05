@@ -14,6 +14,7 @@
 #include <string.h>
 #define DYN_STR(c) (strcpy((char*)malloc(strlen(c)+1),c))
 #define DYN_NON_POINT(a) (memcpy((__typeof__(a)*)malloc(sizeof(a)),&a,sizeof(a)))
+#include <stdlib.h>
 #include <unistd.h>
 #define free(a) ({free(a);a = NULL;})
 extern int in_heap(void *address);
