@@ -142,7 +142,7 @@ int main(int argc, char** argv){
 		
 	}else{
 		signal(SIGINT, interrupt_p);
-		signal(SIGSEGV, interrupt_p);
+		signal(SIGSEGV, segfault_p);
 		slide_list slides = make_list((char*)dict_get_val(config, "init_page"), atoi((char*)dict_get_val(config, "init_duration")), -1);
 		 
 		char* url = dict_get_val(config, "server");
@@ -181,12 +181,15 @@ int main(int argc, char** argv){
 			//Doesn't block...
 			read_db(to_server,512);
 			while(get_msg_count(to_server) > 0){
+				printf("I have a message...\n");
 				int nxt_size = get_nxt_msg_size(to_server);
 				char* msg_buf = (char*)malloc(nxt_size);
 
 				get_msg(to_server, msg_buf);
+				printf("Got message %s\n", msg_buf);
 				socket_message* p_msg = json_to_message(msg_buf);
 				free(msg_buf);
+				printf("Got message with action %d\n", p_msg->action);
 				SLIDE_ACTION action = p_msg->action;
 				if(action == LOAD_SLIDES){
 					printf("Loading new slides!\n");
@@ -238,37 +241,64 @@ int main(int argc, char** argv){
 					printf("Editing a slide!\n");
 					socket_message_content* c = p_msg->content;
 					Dict* d = c->meta;
-					socket_meta* id_m = (socket_meta*)dict_get_val(d, "ID");
-					socket_meta* link_m = (socket_meta*)dict_get_val(d, "permalink");
-					socket_meta* dur_m = (socket_meta*) dict_get_val(d, "duration");
-					if(id_m == NULL || link_m == NULL || dur_m ==NULL){
-						printf("EDIT: Something was null...\n");
+					//dump_dict(d);
+					if(d){
+						printf("Here is dict in editting the slide...\n");
+						dump_dict(d);
+					}else{
+						printf("Null meta dict...\n");
+					}
+					printf("Getting the stoof...\n");
+					Dict* id_m = (Dict*)dict_get_val(d, "ID");
+					Dict* link_m = (Dict*)dict_get_val(d, "permalink");
+					Dict* dur_m = (Dict*) dict_get_val(d, "duration");
+					if(id_m == NULL){
+						printf("ID was null...\n");
 						continue;
 					}
+					
+
+					if(link_m == NULL){
+						printf("Link was null...\n");
+						continue;
+					}
+					if(dur_m == NULL){
+
+						printf("Dur was null...\n");
+						continue;
+					}
+					printf("Assigning the stoof...\n");
+
 					int id;
 					int duration;
 					char* loc;
-
+					printf("id_m is @ %p\n", id_m);
 					if(id_m->type != T_INT){
 						printf("ID wasn't an int ?\n");
 						continue;
 					}
+					printf("Setting id...\n");
+					printf("Id is @ %p\n", id_m->value);
 					id = *((int*)id_m->value);
 					if(dur_m->type != T_INT){
 						printf("Duration wasn't an int ?\n");
 						continue;
 					}
+					printf("Seeting duration..\n");
 					duration = *((int*)dur_m->value);
 					if(link_m->type != T_POINT_CHAR){
 						printf("Link wasn't a string ?\n");
 						continue;
 					}
+					printf("Setting location...\n");
 					loc = (char*)link_m->value;
+					printf("Setting slide with id...\n");
 					set_slide_with_id(slides, loc, duration, id);
+					printf("Done editting the slide...\n");
 				}else if(action == DELETE_SLIDE){
 					printf("Deleteing a slide!\n");
 					Dict* d = p_msg->content->meta;
-					socket_meta* id_m = (socket_meta*)dict_get_val(d, "ID");
+					Dict* id_m = (Dict*)dict_get_val(d, "ID");
 					if(id_m == NULL){
 						printf("ID in delete was null...\n");
 						continue;
@@ -280,12 +310,12 @@ int main(int argc, char** argv){
 					delete_slide_with_id(slides, *((int*)id_m->value));
 				}else if(action == TERMINATE){
 					printf("Recieved the TERMINATE action... terminating...\n");
-
 					kill(gtk_id, SIGINT);
 					wait(NULL);
 					exit(0);
 				}
 				if(p_msg){
+					printf("Deleteing the message...\n");
 					delete_socket_message(p_msg);
 				}
 			}

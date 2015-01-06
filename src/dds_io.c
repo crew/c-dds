@@ -228,7 +228,7 @@ dds_sock open_connection(char* addr, char* port){
 	if(err == -1){
 		perror("connect");
 		close_connection(sock);
-		err_quit("Socket connect failed...%d\n");
+		err_quit("Socket connect failed...\n");
 	}
 	print_addr_info("Connected to host: ", addrlist);	
 	//TO free everything
