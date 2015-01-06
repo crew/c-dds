@@ -5,7 +5,7 @@
 #include <syslog.h>
 #include <string.h>
 #include <stdbool.h>
-#include "dds-globals.h"
+#include "dds_globals.h"
 #include "cJSON.h"
 #include "dict.h"
 #include "parseJSON.h"

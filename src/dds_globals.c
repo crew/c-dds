@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "dds-globals.h"
+#include "dds_globals.h"
 
 /*
  * Returns true if the given
