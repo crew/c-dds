@@ -10,13 +10,13 @@ static gboolean closeWebViewCb(WebKitWebView* webView, GtkWidget* window)
 	gtk_widget_destroy(window);
 	return TRUE;
 }
-WebKitWebView* *make_view(char* initPage){
+WebKitWebView* make_view(char* initPage){
 	// Initialize GTK+
 	 gtk_init(NULL, NULL);          
 	// Create an 800x600 window that will contain the browser instance
 	GtkWidget *main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	//gtk_window_set_default_size(GTK_WINDOW(main_window), 800, 600);
-	gtk_window_fullscreen(main_window);
+	gtk_window_fullscreen(GTK_WINDOW(main_window));
 	// Create a browser instance
 	WebKitWebView *webView = WEBKIT_WEB_VIEW(webkit_web_view_new());
 	WebKitWebSettings* page_settings = webkit_web_view_get_settings(webView);
