@@ -1,5 +1,5 @@
 /*
- * dds-globals.h
+ * dds_globals.h
  *
  *  Created on: Dec 29, 2014
  *      Author: belph, c0d3d

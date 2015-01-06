@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <signal.h>
-#include "dds-globals.h"
+#include "dds_globals.h"
 //PASSED MEMORY CHECKS (ASSUMING KEYS ARE ALSO MALLOC'ED)
 Dict* make_dict_with(char* key, void* value){
 	Dict* d = (Dict*) malloc(sizeof(Dict));
