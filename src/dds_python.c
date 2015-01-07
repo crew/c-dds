@@ -88,10 +88,18 @@ void init_plugin(char* plugin, obj_list container){
 	PyRun_SimpleString(whole);
 	free(whole);
 	free(plugin_file_name);
+	PyObject* main_module = PyImport_AddModule("__main__");
+	PyObject* global_dict = PyModule_GetDict(main_module);
+	PyObject* local_dict = PyDict_New();
+	char* parens = "()\n";
+	char* make_obj = (char*)malloc(strlen(plugin_class_name)+strlen(parens)+1);
+	strcpy(make_obj, plugin_class_name);
+	strcat(make_obj, parens);
+
+	PyObject* plugin = PyRun_String(make_obj,Py_eval_string, global_dict, local_dict);
+	free(make_obj);
 	free(plugin_class_name);
-	//Py_eval_string
-	//TODO make an instance
-	//PyRun_string
+	obj_list_add(container, plugin);
 }
 void give_callback_registration_oppertunity(PyObject* plugin, obj_list all_plugins){
 	//TODO hand the given plugin a list of the other plugins and allow it to snag a callback from the ones it needs
