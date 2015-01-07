@@ -7,7 +7,7 @@ SRCS=main.c dds_globals.c dict.c readcfg.c parseJSON.c cJSON.c gtkWindow.c dds_i
 ENDARGS=-lrt -lm -lc $(PKGS)
 OBJS=$(SRCS:.c=.o)
 ARM_HUH=$($(lscpu) | grep arm)
-ifneq ($(ARM_HUH), "")
+ifneq ($(ARM_HUH),)
 	ARCH= -march=armv6zk -mcpu=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp
 else
 	ARCH=
