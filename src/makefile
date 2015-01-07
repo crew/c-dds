@@ -13,7 +13,7 @@ else
 	ARCH=
 endif
 	
-CC=gcc -I/usr/include/python2.7 -lpython2.7 -DKEY_PATH=\"$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))/main.c\" $(ARCH)
+CC=gcc -I/usr/include/python2.7 -lpython2.7 -DCONFIG_PATH=\"${PWD}/../Configs/PIE.conf\" -DKEY_PATH=\"$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))/main.c\" $(ARCH)
 
 
 
