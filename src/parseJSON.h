@@ -38,13 +38,14 @@ typedef struct action_data_struct {
 typedef struct pie_struct {
     char *name;
 } pie;
-
 typedef struct m_meta_struct{
-    void *value;
-    META_TYPE type;
+	    void *value;
+	    META_TYPE type;
 } socket_meta;
 
 typedef struct m_content_struct {
+    //TODO rename this everywhere to value or something
+
     Dict *meta;
     int num_actions;
     action_data **actions;

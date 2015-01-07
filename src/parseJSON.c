@@ -535,43 +535,26 @@ cJSON *dict_to_cJSON(Dict *d){
 
 socket_message *json_to_message(char *str) {
     cJSON *input, *content;
-    printf("Parseing...\n");
     input = cJSON_Parse(str);
-    printf("Making input dict....\n");
     Dict *input_dict = cJSON_to_dict(input->child);
-    printf("Got input...\n");
     if(dict_get_type(input_dict,"content") == T_POINT_CHAR){
-    	printf("Parsing content string...\n");
 	cJSON *ctemp = cJSON_Parse((char*)dict_get_val(input_dict,"content"));
     	dict_remove_entry(input_dict,"content");
     	dict_put(input_dict,DYN_STR("content"),cJSON_to_dict(ctemp->child));
-	printf("This is content...\n");
-
-	dump_dict(dict_get_val(input_dict, "content"));
 	cJSON_Delete(ctemp);
     }
-    printf("content...\n");
     content = cJSON_GetObjectItem(input, "content");
     if(content->type == cJSON_String){
     	content = cJSON_Parse(content->valuestring);
     }
     socket_message_content *msg_c = (socket_message_content *) malloc(sizeof(socket_message_content));
-    printf("Paring actions...\n");
     Dict* tmp = (Dict*)dict_get_val(input_dict, "content");
     if(dict_has_key(tmp, "actions")){
     	parse_actions_dict((Dict*)dict_get_val(tmp,"actions"),msg_c);
     }
-    printf("Done... 1\n");
     if (dict_has_key((Dict*)dict_get_val(input_dict,"content"),"meta")){
-    	printf("Meyta...\n");
-	printf("This is meta....\n");
-	dump_dict((Dict*)dict_get_val(input_dict,"content","meta"));
-	printf("This is content...\n");
-	dump_dict((Dict*)dict_get_val(input_dict, "content"));
-
 	msg_c->meta = (Dict*)dict_get_val(input_dict,"content");
     	dict_detatch_entry(input_dict,"content");
-    	printf("done meta...\n");
     }
 
     else{
@@ -586,18 +569,13 @@ socket_message *json_to_message(char *str) {
     	free(msg->datetime);
     	msg->datetime = NULL;
     }
-    printf("Action...\n");
     msg->action = parse_action((char*)dict_get_val(input_dict,"action"));
-    printf("Content...\n");
     msg->content = msg_c;
-    printf("src\n");
     msg->src = parse_pie_dict_val(dict_get_val(input_dict,"src"));
-    printf("Dest...\n");
     msg->dest = parse_pie_dict_val(dict_get_val(input_dict,"dest"));
-    printf("Plugin dest...\n");
     msg->plugin_dest = DYN_STR((char*)dict_get_val(input_dict,"pluginDest"));
     cJSON_Delete(input);
-    dump_dict(input_dict);
+    //dump_dict(input_dict);
     delete_dict_and_contents(input_dict);
     return msg;
 }

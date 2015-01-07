@@ -37,7 +37,7 @@ gboolean gtk_update_page(void* arg_void){
 	return TRUE;
 }
 static void terminate(int signal){
-	kill(gtk_id, SIGINT);
+	kill(gtk_id, SIGKILL);
 	wait(NULL);
 	if(global_sock != NULL){
 		close_connection(global_sock);
@@ -59,7 +59,7 @@ static void interrupt_c(){
 	printf("\n(Child  | PID %d) Interrupt signal received...\n",getpid());
 	close_dds_sem(global_args->lock);
 	shmdt(global_args->cur_url);
-	_Exit(SIGINT);
+	exit(SIGINT);
 }
 void* make_shmmem(){
 	key_t key = ftok(KEY_PATH, 's');
@@ -210,103 +210,58 @@ int main(int argc, char** argv){
 					printf("Adding new slide!\n");
 					socket_message_content* c = p_msg->content;
 					Dict* d = c->meta;
-					socket_meta* id_m = (socket_meta*)dict_get_val(d, "ID");
-					socket_meta* link_m = (socket_meta*)dict_get_val(d, "permalink");
-					socket_meta* dur_m = (socket_meta*) dict_get_val(d, "duration");
-					if(id_m == NULL || link_m == NULL || dur_m ==NULL){
-						printf("ADD: Something was null...\n");
+					Dict* id_d = simple_get_val(d, "ID");
+					Dict* link_d = simple_get_val(d, "permalink");
+					Dict* dur_d = simple_get_val(d, "duration");
+					if(!id_d){
+						printf("Id was null ...\n");
 						continue;
 					}
-					int id;
-					int duration;
-					char* loc;
-
-					if(id_m->type != T_INT){
-						printf("ID wasn't an int ?\n");
+					if(!dur_d){
+						printf("Dur was null...\n");
 						continue;
 					}
-					id = *((int*)id_m->value);
-					if(dur_m->type != T_INT){
-						printf("Duration wasn't an int ?\n");
+					if(!link_d){
+						printf("Link was null...\n");
 						continue;
 					}
-					duration = *((int*)dur_m->value);
-					if(link_m->type != T_POINT_CHAR){
-						printf("Link wasn't a string ?\n");
-						continue;
-					}
-					loc = (char*)link_m->value;
-					add_slide(slides,make_slide( loc, duration, id));
+					printf("Adding slide [%s,%d,%d]\n",link_d->value, id_d->value, dur_d->value);
+					add_slide(slides,make_slide(link_d->value, *((int*)dur_d->value), *((int*)id_d->value)));
 				}else if(action == EDIT_SLIDE){
 					printf("Editing a slide!\n");
 					socket_message_content* c = p_msg->content;
 					Dict* d = c->meta;
-					//dump_dict(d);
-					if(d){
-						printf("Here is dict in editting the slide...\n");
-						dump_dict(d);
-					}else{
-						printf("Null meta dict...\n");
-					}
-					printf("Getting the stoof...\n");
-					Dict* id_m = (Dict*)dict_get_val(d, "ID");
-					Dict* link_m = (Dict*)dict_get_val(d, "permalink");
-					Dict* dur_m = (Dict*) dict_get_val(d, "duration");
+					Dict* id_m = (Dict*)simple_get_val(d, "ID");
+					Dict* link_m = (Dict*)simple_get_val(d, "permalink");
+					Dict* dur_m = (Dict*) simple_get_val(d, "duration");
 					if(id_m == NULL){
-						printf("ID was null...\n");
+						printf("Edit id was null...\n");
 						continue;
 					}
-					
-
 					if(link_m == NULL){
 						printf("Link was null...\n");
 						continue;
 					}
 					if(dur_m == NULL){
-
 						printf("Dur was null...\n");
 						continue;
 					}
-					printf("Assigning the stoof...\n");
-
-					int id;
-					int duration;
-					char* loc;
-					printf("id_m is @ %p\n", id_m);
-					if(id_m->type != T_INT){
-						printf("ID wasn't an int ?\n");
-						continue;
-					}
-					printf("Setting id...\n");
-					printf("Id is @ %p\n", id_m->value);
-					id = *((int*)id_m->value);
-					if(dur_m->type != T_INT){
-						printf("Duration wasn't an int ?\n");
-						continue;
-					}
-					printf("Seeting duration..\n");
-					duration = *((int*)dur_m->value);
-					if(link_m->type != T_POINT_CHAR){
-						printf("Link wasn't a string ?\n");
-						continue;
-					}
-					printf("Setting location...\n");
-					loc = (char*)link_m->value;
-					printf("Setting slide with id...\n");
+						
+					int id = *((int*)id_m->value);
+					int duration = *((int*)dur_m->value);
+					char* loc = (char*)link_m->value;
+					printf("Edditing slide with [%s,%d,%d]\n",loc, id, duration);
 					set_slide_with_id(slides, loc, duration, id);
 					printf("Done editting the slide...\n");
 				}else if(action == DELETE_SLIDE){
 					printf("Deleteing a slide!\n");
 					Dict* d = p_msg->content->meta;
-					Dict* id_m = (Dict*)dict_get_val(d, "ID");
+					Dict* id_m = simple_get_val(d, "ID");
 					if(id_m == NULL){
 						printf("ID in delete was null...\n");
 						continue;
 					}
-					if(id_m->type != T_INT){
-						printf("id wasn't an int ?");
-						continue;
-					}
+					printf("Deleting slide with id %d\n",id_m->value);
 					delete_slide_with_id(slides, *((int*)id_m->value));
 				}else if(action == TERMINATE){
 					printf("Recieved the TERMINATE action... terminating...\n");

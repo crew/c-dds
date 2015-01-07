@@ -6,6 +6,19 @@
 #include <signal.h>
 #include "dds_globals.h"
 //PASSED MEMORY CHECKS (ASSUMING KEYS ARE ALSO MALLOC'ED)
+
+Dict* simple_get_val(Dict* d, char* key){
+	Dict* dict = d->next;
+	while(dict){
+		if(!strcmp(dict->key, key)){
+			return dict;
+		}
+		dict = dict->next;
+	}
+
+	return NULL;
+
+}
 Dict* make_dict_with(char* key, void* value){
 	Dict* d = (Dict*) malloc(sizeof(Dict));
 	// Make sure that the key has been malloc-ed
@@ -47,7 +60,8 @@ void del_last(Dict* d, int freeContents){
 			delete_dict_and_contents((Dict*)index->value);
         	}
         	else{
-        		free(index->value);
+		
+			free(index->value);
 		}
 		free(index->key);
 		index->key = NULL;

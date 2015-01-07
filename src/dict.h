@@ -13,6 +13,7 @@ typedef struct _dict{
 }Dict;
 
 Dict* make_dict(void);
+Dict* simple_get_val(Dict* d, char* key);
 int dict_size(Dict*);
 void delete_dict(Dict*);
 void delete_dict_and_contents(Dict*);
