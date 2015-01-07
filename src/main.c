@@ -121,7 +121,7 @@ static char* get_hello_msg(Dict* config){
 //TODO connect termination signal to free ALL the shit
 int main(int argc, char** argv){
 	dds_sem lock = dds_open_sem("/dds_gtk_sem", 1);	
-	Dict* config = readConfig("../Configs/PIE.conf");
+	Dict* config = readConfig(CONFIG_PATH);
 	timeout_args targs;
 	global_args = &targs;
  	global_args->cur_url = (char*)make_shmmem();

@@ -13,7 +13,7 @@ else
 	ARCH=
 endif
 	
-CC=gcc -DKEY_PATH=\"$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))/main.c\" $(ARCH)
+CC=gcc -DCONFIG_PATH=\"${PWD}/../Configs/PIE.conf\" -DKEY_PATH=\"$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))/main.c\" $(ARCH)
 
 
 
