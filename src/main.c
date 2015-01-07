@@ -4,6 +4,7 @@
 #include <sys/shm.h>
 #include <time.h>
 #include <signal.h>
+#include <Python.h>
 #include "dds_io.h"
 #include "dds_gtk.h"
 #include "dict.h"

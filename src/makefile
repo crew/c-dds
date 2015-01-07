@@ -1,6 +1,6 @@
 
 OUT=run
-PKGS=`pkg-config --cflags --libs gtk+-3.0 webkitgtk-3.0 glib-2.0`
+PKGS=`pkg-config --cflags --libs gtk+-3.0 webkitgtk-3.0 glib-2.0 `
 CFLAGS=-c $(PKGS)
 BUILDDIR=build
 SRCS=main.c dds_globals.c dict.c readcfg.c parseJSON.c cJSON.c gtkWindow.c dds_io.c dds_sem.c dds_slides.c
@@ -13,7 +13,7 @@ else
 	ARCH=
 endif
 	
-CC=gcc -DKEY_PATH=\"$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))/main.c\" $(ARCH)
+CC=gcc -I/usr/include/python2.7 -lpython2.7 -DKEY_PATH=\"$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))/main.c\" $(ARCH)
 
 
 
