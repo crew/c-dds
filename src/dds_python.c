@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+#include <ctypes.h>
 
 #include "dict.h"
 struct _pyobj_list{
@@ -62,12 +64,40 @@ int obj_list_len(obj_list list){
 	return (int)PyList_GET_SIZE(list->plist);
 }
 void init_plugin(char* plugin, obj_list container){
-	//TODO create an instance of the plugin and load it into the container...
+	char* from = "from Plugins.";
+	char* imp = " import ";
+	char* ln = "\n";
+
+	char* plugin_file_name = (char*)malloc(strlen(plugin)+1);
+	strcpy(plugin_file_name, plugin);
+	if(isupper(plugin_file_name[0])){
+		plugin_file_name[0] = tolower(plugin_file_name[0]);
+	}
+	char* plugin_class_name = (char*)malloc(strlen(plugin)+1);
+	strcpy(plugin_class_name, plugin);
+	if(!isupper(plugin_class_name[0])){
+		plugin_class_name[0] = toupper(plugin_class_name[0]);
+	}
+	char* whole = (char*)malloc(strlen(from)+strlen(imp)+strlen(ln)+2*strlen(plugin)+1);
+	strcpy(whole, from);
+	strcat(whole, plugin_file_name);
+	strcat(whole, imp);
+	strcat(whole, plugin_class_name);
+	strcat(whole, ln);
+	printf("After everything we got %s\n",whole);
+	PyRun_SimpleString(whole);
+	free(whole);
+	free(plugin_file_name);
+	free(plugin_class_name);
+	//Py_eval_string
+	//TODO make an instance
+	//PyRun_string
 }
 void give_callback_registration_oppertunity(PyObject* plugin, obj_list all_plugins){
 	//TODO hand the given plugin a list of the other plugins and allow it to snag a callback from the ones it needs
 }
 void init_dds_python(Dict* config){
+	Py_Initialize();
 	if(dict_has_key(config, "plugins")){
 		Dict* val = dict_get_val(config, "plugins");
 
