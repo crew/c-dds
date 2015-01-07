@@ -73,7 +73,7 @@ void del_last(Dict* d, int freeContents){
 void _delete_dict(Dict* d, int freeContents){
 	int size = dict_size(d);
 	int i = 0;
-	for(i; i<size;i++){
+	for(; i<size;i++){
 		del_last(d, freeContents);
 	}
 	free(d);
