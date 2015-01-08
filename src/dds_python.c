@@ -99,6 +99,7 @@ void init_plugin(char* plugin, obj_list container){
 	PyObject* plugin = PyRun_String(make_obj,Py_eval_string, global_dict, local_dict);
 	free(make_obj);
 	free(plugin_class_name);
+	Py_DECREF(local_dict);
 	obj_list_add(container, plugin);
 }
 void give_callback_registration_oppertunity(PyObject* plugin, obj_list all_plugins){
