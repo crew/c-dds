@@ -63,5 +63,6 @@ typedef struct m_root_struct {
 extern socket_message *json_to_message(char *str);
 extern char *message_to_json(socket_message *msg);
 extern void delete_socket_message(socket_message *msg);
+extern void dump_message_json_str(char *str);
 
 #endif

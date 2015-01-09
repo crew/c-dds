@@ -653,6 +653,20 @@ void delete_socket_message(socket_message* m){
 	del_pie_struct(m->dest);
 	free(m);
 }
+
+void dump_message_json_str(char* str){
+	cJSON *input;
+	input = cJSON_Parse(str);
+	if(cJSON_GetObjectItem(input,"content")){
+		if(cJSON_GetObjectItem(input,"content")->type == cJSON_String){
+			cJSON_ReplaceItemInObject(input,"content",cJSON_Parse(cJSON_GetObjectItem(input,"content")->valuestring));
+		}
+	}
+	printf("%s",cJSON_Print(input));
+	cJSON_Delete(input);
+	return;
+}
+
 /*
 void delete_socket_message(socket_message *m){
 	if (m->content){

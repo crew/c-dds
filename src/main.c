@@ -13,6 +13,7 @@
 #include "dds_sem.h"
 #include "parseJSON.h"
 #include "dds_slides.h"
+#include "dds_globals.h"
 //#define KEY_PATH "/home/pi/c-dds/src/main.c"
 #define MAX_URL_LEN 1024
 
@@ -145,7 +146,8 @@ int main(int argc, char** argv){
 		signal(SIGINT, interrupt_p);
 		signal(SIGSEGV, segfault_p);
 		slide_list slides = make_list((char*)dict_get_val(config, "init_page"), atoi((char*)dict_get_val(config, "init_duration")), -1);
-		 
+
+		LOCAL_NAME = DYN_STR(dict_get_val(config,"name")); 
 		char* url = dict_get_val(config, "server");
 		char* port = dict_get_val(config, "port");
 
@@ -187,7 +189,9 @@ int main(int argc, char** argv){
 				char* msg_buf = (char*)malloc(nxt_size);
 
 				get_msg(to_server, msg_buf);
-				printf("Got message %s\n", msg_buf);
+				printf("Got message");
+				dump_message_json_str(msg_buf);
+				printf("\n");
 				socket_message* p_msg = json_to_message(msg_buf);
 				free(msg_buf);
 				printf("Got message with action %d\n", p_msg->action);
