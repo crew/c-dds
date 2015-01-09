@@ -102,8 +102,37 @@ void init_plugin(char* plugin, obj_list container){
 	Py_DECREF(local_dict);
 	obj_list_add(container, plugin);
 }
-void give_callback_registration_oppertunity(PyObject* plugin, obj_list all_plugins){
-	//TODO hand the given plugin a list of the other plugins and allow it to snag a callback from the ones it needs
+PyObject* make_callback_dict(obj_list plugin_list){
+	PyObject* dict = PyDict_New();
+	int index = 0;
+
+ 
+	while(index++ < obj_list_len(plugin_list)){
+		PyObject* cur = obj_list_get(plugin_list, index);
+		PyObject* cur_plugin_name, cur_plugin_write, getName, plugin_name;
+		//Might need to add self reference to args, dunno
+		PyObject* tuple = PyTuple_New((Py_ssize_t)0);
+		getName = PyObject_GetAttr(cur, "getName");
+		plugin_name = PyObject_Call(getName, tuple, NULL);
+		Py_DECREF(tuple);
+		Py_DECREF(getName);
+		cur_plugin_write = PyObject_GetAttr(cur, "addMessage");
+		PyDict_SetItem(dict, plugin_name, cur_plugin_write);
+		Py_DECREF(plugin_name);
+		Py_DECREF(cur_plugin_write);
+	}
+	return dict;
+}
+void give_callback_registration_oppertunity(PyObject* plugin, PyObject* call_back_dict){
+	PyObject* setup;
+	setup = PyObject_GetAttr(plugin, "setup");
+	PyObject* arg_tuple = PyTuble_New((Py_ssize_t)2);
+	PyTuple_SetItem(arg_tuple, 0, call_back_dict);
+	//TODO setup runtimeVars, what are these even?
+	PyTuple_SetItem(arg_tuple, 1, Py_None);
+	PyObject_Call(setup, arg_tuple, NULL);
+	Py_DECREF(arg_tuple);
+	Py_DECREF(setup);	
 }
 void init_dds_python(Dict* config){
 	Py_Initialize();
@@ -117,13 +146,16 @@ void init_dds_python(Dict* config){
 
 		cur_plugin = strtok(plugins_list, ",");
 		while(cur_plugin){
+			import_plugin(cur_plugin);
 			init_plugin(cur_plugin, plugins_list);
 			cur_plugin = strtok(NULL, ",");
 		}
 		int index = 0;
+		PyObject* cb_dict = make_callback_dict(plugin_list);
 		for(;index < obj_list_len(plugin_list);index++){
-			give_callback_registration_oppertunity(obj_list_get(plugin_list, index), plugin_list);
+			give_callback_registration_oppertunity(obj_list_get(plugin_list, index), cb_dict);
 		}
+		Py_DECREF(cb_dict);
 		del_obj_list(plugin_list);
 	}
 }
