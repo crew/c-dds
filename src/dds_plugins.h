@@ -6,8 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <ctypes.h>
-#include "dds-globals.h"
+#include "dds_globals.h"
 #include "dds_piobj_list.h"
 #include "dict.h"
 

@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <ctypes.h>
 
 #include "dict.h"
 struct _pyobj_list{
