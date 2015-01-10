@@ -19,9 +19,14 @@ typedef struct _plugin_thread{
 }plugin_thread;
 typedef struct _thread_container{
 	int size;
-	plugin_thread* thread_arr;
+	plugin_thread** thread_arr;
 }thread_container;
+thread_container* make_thread_container(void);
+plugin_thread* make_plugin_thread(char* name);
+void thread_container_add(thread_container* container, plugin_thread* thread);
+void delete_plugin_thread(plugin_thread* plug);
+void delete_thread_container(thread_container* c);
 //Returns an array of plugin threads
- thread_container init_dds_python(Dict* config);
+thread_container* init_dds_python(Dict* config);
 
 #endif
