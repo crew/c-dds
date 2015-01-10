@@ -1,5 +1,36 @@
 #include "dds_plugins.h"
 void init_plugin(char* plugin, obj_list container){
+	char* myplg = DYN_STR(plugin);
+	char* path = (char*)malloc(strlen(plugin)+strlen(PLUGINS_PATH)+1);
+	if(isupper(myplg[0])){
+		myplg[0] = tolower(myplg[0]);
+	}
+	strcpy(path, PLUGINS_PATH);
+	strcat(path, myplg);
+	PyObject* plug_module = PyImport_ImportModule(path);
+	if(islower(myplg[0])){
+		myplg[0] = toupper(myplg[0]);
+
+	}
+	PyObject* clazz = PyObject_GetAttr(plug_module, myplg);
+	Py_DECREF(plug_module);
+	free(myplg);
+	free(path);
+	if(!PyClass_Check(clazz)){
+		fprintf(stderr, "Got something that wasn't a class object...\n");
+	}
+
+	PyObject* plugin_instance = PyInstance_New(clazz, NULL, NULL);
+	Py_DECREF(clazz);
+	obj_list_add(container, plugin_instance);
+	
+	
+	
+	
+	
+	
+	
+	/*
 	char* from = "from Plugins.";
 	char* imp = " import ";
 	char* ln = "\n";
@@ -37,6 +68,7 @@ void init_plugin(char* plugin, obj_list container){
 	free(plugin_class_name);
 	Py_DECREF(local_dict);
 	obj_list_add(container, plugin);
+	*/
 }
 PyObject* make_callback_dict(obj_list plugin_list){
 	PyObject* dict = PyDict_New();
