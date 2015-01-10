@@ -13,7 +13,15 @@
 
 #define PLUGINS_FOLDER "Plugins."
 
-
-void init_dds_python(Dict* config);
+typedef struct _plugin_thread{
+	char[64] name;
+	pthread_t thread;
+}plugin_thread;
+typedef struct _thread_container{
+	int size;
+	plugin_thread* thread_arr;
+}thread_container;
+//Returns an array of plugin threads
+ thread_container init_dds_python(Dict* config);
 
 #endif
