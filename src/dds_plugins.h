@@ -11,9 +11,9 @@
 #include "dict.h"
 
 #define PLUGINS_FOLDER "Plugins."
-
+#define PLUGINS_PATH "../Plugins/"
 typedef struct _plugin_thread{
-	char[64] name;
+	char name[64];
 	pthread_t thread;
 }plugin_thread;
 typedef struct _thread_container{

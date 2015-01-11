@@ -1,3 +1,4 @@
+
 #include "dds_plugins.h"
 thread_container* make_thread_container(void){
 	thread_container* tmp = (thread_container*)malloc(sizeof(thread_container));
@@ -52,7 +53,7 @@ void init_plugin(char* plugin, obj_list container){
 		myplg[0] = toupper(myplg[0]);
 
 	}
-	PyObject* clazz = PyObject_GetAttr(plug_module, myplg);
+	PyObject* clazz = PyObject_GetAttrString(plug_module, myplg);
 	if(clazz){
 		printf("Couldn't get the plugin class...\n");
 		PyErr_Print();
@@ -72,74 +73,33 @@ void init_plugin(char* plugin, obj_list container){
 	}
 	Py_DECREF(clazz);
 	obj_list_add(container, plugin_instance);
-	
-	/*
-	char* from = "from Plugins.";
-	char* imp = " import ";
-	char* ln = "\n";
-
-	char* plugin_file_name = (char*)malloc(strlen(plugin)+1);
-	strcpy(plugin_file_name, plugin);
-	if(isupper(plugin_file_name[0])){
-		plugin_file_name[0] = tolower(plugin_file_name[0]);
-	}
-	char* plugin_class_name = (char*)malloc(strlen(plugin)+1);
-	strcpy(plugin_class_name, plugin);
-	if(!isupper(plugin_class_name[0])){
-		plugin_class_name[0] = toupper(plugin_class_name[0]);
-	}
-	char* whole = (char*)malloc(strlen(from)+strlen(imp)+strlen(ln)+2*strlen(plugin)+1);
-	strcpy(whole, from);
-	strcat(whole, plugin_file_name);
-	strcat(whole, imp);
-	strcat(whole, plugin_class_name);
-	strcat(whole, ln);
-	printf("After everything we got %s\n",whole);
-	PyRun_SimpleString(whole);
-	free(whole);
-	free(plugin_file_name);
-	PyObject* main_module = PyImport_AddModule("__main__");
-	PyObject* global_dict = PyModule_GetDict(main_module);
-	PyObject* local_dict = PyDict_New();
-	char* parens = "()\n";
-	char* make_obj = (char*)malloc(strlen(plugin_class_name)+strlen(parens)+1);
-	strcpy(make_obj, plugin_class_name);
-	strcat(make_obj, parens);
-
-	PyObject* plugin = PyRun_String(make_obj,Py_eval_string, global_dict, local_dict);
-	free(make_obj);
-	free(plugin_class_name);
-	Py_DECREF(local_dict);
-	obj_list_add(container, plugin);
-	*/
 }
-thread_container make_callback_dict(obj_list plugin_list){
+PyObject* make_callback_dict(obj_list plugin_list){
 	PyObject* dict = PyDict_New();
 	int index = 0;
 
  
 	while(index++ < obj_list_len(plugin_list)){
 		PyObject* cur = obj_list_get(plugin_list, index);
-		PyObject* cur_plugin_name, cur_plugin_write, getName, plugin_name;
 		//Might need to add self reference to args, dunno
 		PyObject* tuple = PyTuple_New((Py_ssize_t)0);
 		if(tuple){
 			printf("Couldn't make tuple ?\n");
 			PyErr_Print();
 		}
-		getName = PyObject_GetAttr(cur, "getName");
+		PyObject* getName = PyObject_GetAttrString(cur, "getName");
 		if(getName){
 			printf("Couldn't get the getName method...\n");
 			PyErr_Print();
 		}
-		plugin_name = PyObject_Call(getName, tuple, NULL);
+		PyObject* plugin_name = PyObject_Call(getName, tuple, NULL);
 		if(plugin_name){
 			printf("Couldn't call the getName method...\n");
 			PyErr_Print();
 		}
 		Py_DECREF(tuple);
 		Py_DECREF(getName);
-		cur_plugin_write = PyObject_GetAttr(cur, "addMessage");
+		PyObject* cur_plugin_write = PyObject_GetAttrString(cur, "addMessage");
 		if(cur_plugin_write){
 			printf("Couldn't get addMessage method...\n");
 			PyErr_Print();
@@ -156,7 +116,7 @@ thread_container make_callback_dict(obj_list plugin_list){
 }
 void give_callback_registration_oppertunity(PyObject* plugin, PyObject* call_back_dict){
 	PyObject* setup;
-	setup = PyObject_GetAttr(plugin, "setup");
+	setup = PyObject_GetAttrString(plugin, "setup");
 	if(setup){
 		printf("Couldn't get setup method...\n");
 		PyErr_Print();
@@ -194,14 +154,14 @@ thread_container* init_dds_python(Dict* config){
 		Dict* val = dict_get_val(config, "plugins");
 
 		
-		char* plugins_list, cur_plugin;
-		plugins_list_str = val->value;
+		char* cur_plugin;
+		char* plugins_list_str = val->value;
 		obj_list plugin_list = new_object_list();
 
-		cur_plugin = strtok(plugins_list, ",");
+		cur_plugin = strtok(plugins_list_str, ",");
 		while(cur_plugin){
 			import_plugin(cur_plugin);
-			init_plugin(cur_plugin, plugins_list);
+			init_plugin(cur_plugin, plugin_list);
 			cur_plugin = strtok(NULL, ",");
 		}
 		int index = 0;
@@ -214,7 +174,7 @@ thread_container* init_dds_python(Dict* config){
 		PyObject* mt_tuple = PyTuple_New(0);
 		for(index = 0; index < len;index++){
 			PyObject* cur = obj_list_get(plugin_list, index);
-			PyObject* needsThread = PyObject_GetAttr(cur, "needsThread");
+			PyObject* needsThread = PyObject_GetAttrString(cur, "needsThread");
 			if(needsThread){
 				printf("Couldn't get the needsThread method...\n");
 				PyErr_Print();
@@ -225,7 +185,7 @@ thread_container* init_dds_python(Dict* config){
 				PyErr_Print();
 			}
 			if(PyObject_IsTrue(doesNeed)){
-				PyObject* getName = PyObject_GetAttr(cur, "getName");
+				PyObject* getName = PyObject_GetAttrString(cur, "getName");
 				if(getName){
 					printf("Couldn't get the getName function...\n");
 					PyErr_Print();
@@ -238,7 +198,7 @@ thread_container* init_dds_python(Dict* config){
 				Py_DECREF(getName);
 				plugin_thread* tmp_thread = make_plugin_thread(PyString_AS_STRING(nameStr));
 				Py_DECREF(nameStr);
-				PyObject* runMethod = PyObject_GetAttr(cur, "run");
+				PyObject* runMethod = PyObject_GetAttrString(cur, "run");
 				if(runMethod){
 					printf("Couldn't get the run method...\n");
 					PyErr_Print();
@@ -246,7 +206,7 @@ thread_container* init_dds_python(Dict* config){
 					pthread_create(&tmp_thread->thread, NULL, run_plugin, (void*)runMethod);
 				
 				}
-				thread_container_add(tmp_thread);
+				thread_container_add(result, tmp_thread);
 			}else{
 				//TODO figure out what we want to happen here xD
 			}
