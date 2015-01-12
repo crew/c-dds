@@ -45,7 +45,7 @@ void init_plugin(char* plugin, obj_list container){
 	strcpy(path, PLUGINS_PATH);
 	strcat(path, myplg);
 	PyObject* plug_module = PyImport_ImportModule(path);
-	if(plug_module){
+	if(!plug_module){
 		printf("Couldn't import the module plugin module...\n");
 		PyErr_Print();
 	}
@@ -54,7 +54,7 @@ void init_plugin(char* plugin, obj_list container){
 
 	}
 	PyObject* clazz = PyObject_GetAttrString(plug_module, myplg);
-	if(clazz){
+	if(!clazz){
 		printf("Couldn't get the plugin class...\n");
 		PyErr_Print();
 	}
@@ -67,7 +67,7 @@ void init_plugin(char* plugin, obj_list container){
 	}
 
 	PyObject* plugin_instance = PyInstance_New(clazz, NULL, NULL);
-	if(plugin_instance){
+	if(!plugin_instance){
 		printf("Couldn't make plugin instance...\n");
 		PyErr_Print();
 	}
@@ -83,24 +83,24 @@ PyObject* make_callback_dict(obj_list plugin_list){
 		PyObject* cur = obj_list_get(plugin_list, index);
 		//Might need to add self reference to args, dunno
 		PyObject* tuple = PyTuple_New((Py_ssize_t)0);
-		if(tuple){
+		if(!tuple){
 			printf("Couldn't make tuple ?\n");
 			PyErr_Print();
 		}
 		PyObject* getName = PyObject_GetAttrString(cur, "getName");
-		if(getName){
+		if(!getName){
 			printf("Couldn't get the getName method...\n");
 			PyErr_Print();
 		}
 		PyObject* plugin_name = PyObject_Call(getName, tuple, NULL);
-		if(plugin_name){
+		if(!plugin_name){
 			printf("Couldn't call the getName method...\n");
 			PyErr_Print();
 		}
 		Py_DECREF(tuple);
 		Py_DECREF(getName);
 		PyObject* cur_plugin_write = PyObject_GetAttrString(cur, "addMessage");
-		if(cur_plugin_write){
+		if(!cur_plugin_write){
 			printf("Couldn't get addMessage method...\n");
 			PyErr_Print();
 		}
@@ -117,12 +117,12 @@ PyObject* make_callback_dict(obj_list plugin_list){
 void give_callback_registration_oppertunity(PyObject* plugin, PyObject* call_back_dict){
 	PyObject* setup;
 	setup = PyObject_GetAttrString(plugin, "setup");
-	if(setup){
+	if(!setup){
 		printf("Couldn't get setup method...\n");
 		PyErr_Print();
 	}
 	PyObject* arg_tuple = PyTuble_New((Py_ssize_t)2);
-	if(arg_tuple){
+	if(!arg_tuple){
 		printf("Couldn't make the argument tuple...\n");
 		PyErr_Print();
 	}
@@ -130,7 +130,7 @@ void give_callback_registration_oppertunity(PyObject* plugin, PyObject* call_bac
 	//TODO setup runtimeVars, what are these even?
 	PyTuple_SetItem(arg_tuple, 1, Py_None);
 	PyObject* ret = PyObject_Call(setup, arg_tuple, NULL);
-	if(ret){
+	if(!ret){
 		printf("Couldn't call setup...\n");
 		PyErr_Print();
 	}else{
@@ -175,23 +175,23 @@ thread_container* init_dds_python(Dict* config){
 		for(index = 0; index < len;index++){
 			PyObject* cur = obj_list_get(plugin_list, index);
 			PyObject* needsThread = PyObject_GetAttrString(cur, "needsThread");
-			if(needsThread){
+			if(!needsThread){
 				printf("Couldn't get the needsThread method...\n");
 				PyErr_Print();
 			}
 			PyObject* doesNeed = PyObject_Call(needsThread, mt_tuple, NULL);
-			if(doesNeed){
+			if(!doesNeed){
 				printf("Couldn't call the needsThread method...\n");
 				PyErr_Print();
 			}
 			if(PyObject_IsTrue(doesNeed)){
 				PyObject* getName = PyObject_GetAttrString(cur, "getName");
-				if(getName){
+				if(!getName){
 					printf("Couldn't get the getName function...\n");
 					PyErr_Print();
 				}
 				PyObject* nameStr = PyObject_Call(getName, mt_tuple, NULL);
-				if(nameStr){
+				if(!nameStr){
 					printf("Couldn't call the get name function...\n");
 					PyErr_Print();
 				}
@@ -199,7 +199,7 @@ thread_container* init_dds_python(Dict* config){
 				plugin_thread* tmp_thread = make_plugin_thread(PyString_AS_STRING(nameStr));
 				Py_DECREF(nameStr);
 				PyObject* runMethod = PyObject_GetAttrString(cur, "run");
-				if(runMethod){
+				if(!runMethod){
 					printf("Couldn't get the run method...\n");
 					PyErr_Print();
 				}else{
