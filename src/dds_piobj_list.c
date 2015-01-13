@@ -18,9 +18,9 @@ PyObject* obj_list_remove(obj_list list, int index){
 	PyObject* low_slice = PyList_GetSlice(list->plist, 0, (Py_ssize_t)index);
 	PyObject* high_slice = PyList_GetSlice(list->plist, (Py_ssize_t)(index+1), size);
 	Py_DECREF(list->plist);
-	Py_ssize_t index = 0;
-	for(;index < PyList_GET_SIZE(high_slice);index++){
-		if(PyList_Append(low_slice, PyList_GetItem(high_slice, index)) == -1){
+	Py_ssize_t idx = 0;
+	for(;idx < PyList_GET_SIZE(high_slice);idx++){
+		if(PyList_Append(low_slice, PyList_GetItem(high_slice, idx)) == -1){
 			//Something bad happened...
 			fprintf(stderr, "Something when wrong when removing an item from python list...\n");
 		}
