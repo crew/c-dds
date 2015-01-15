@@ -1,7 +1,18 @@
 DDS C Rewrite
 ===================
 *Note: This document is subject to change. Check periodically for updates*
+Contents
+---------
 
+1. <a href="#intro">Introduction</a>
+2. <a href="#clientOutline">Client-Side Process Outline</a>
+3. <a href="#clientDiagram">Client-Side Process Diagram and Flowcharts</a>
+  1. <a href="#processLayout">Client Process Layout</a>
+  2. <a href="#pluginLoading">Client Python Plugin Loading</a>
+  3. <a href="#pluginMsg">Client Python Plugin Message Handling</a>
+
+<a id="intro" name="intro"></a>Introduction
+------------
 Why? Four reasons:
 
 1. Maximum efficiency
@@ -17,7 +28,7 @@ Reasoning aside, this document is more or less an outline of how this is all goi
 
 The plan is to re-implement the Python dds-client [repo](https://github.com/crew/dds-client)'s functionality in C. We will be doing this in two phases, creatively titled Phase 1 and Phase 2. Phase 1 simply aims to get something that works, and Phase 2 will both explore subtle performance improvements and re-implement the DDS Python Plugin API.
 
-Client-Side Process Outline
+<a id="clientOutline" name="clientOutline"></a>Client-Side Process Outline
 --------------------------------
 
 Alright, so if we're going for efficiency anywhere, it's on the client end. Why? [Reasons](http://en.wikipedia.org/wiki/Raspberry_Pi#Specifications). So, here's our working model of what I (i.e. Philip, who is writing this) think will be the best approach. There is a nonzero probability of me being wrong; that is, if there is any performance improvement to this model, or in the even more likely event that something I've written just plain will not work, *please* let me know.
@@ -34,9 +45,14 @@ Now, one thing that will be different from the Python behavior of these threads 
 
 Then, during Phase 2, we will be writing a Python Plugin API. Fair warning: this probably won't be easy, since none of us have ever done anything with this. On the other hand, however, it will be really cool once it's done. Essentially, the goal is to create a Python Plugin Class which can interface with the C rewrite.
 
-Server-Side Process Outline
----------------------------------
+<a id="clientDiagram" name="clientDiagram"></a>Client-Side Process Diagram and Flowcharts
+-----------------------------------------------
 
-I'll be up front: I'm pretty much only writing this section because I spent so much time on the Client one. Because hardware limitations aren't an issue with the Server, this will pretty much be a straight-up rewrite of the Python repo's server. The main difficulties in Phase 1 will be getting the server's WordPress plugin to handle incoming POST requests. Sounds like something one of us will have to Google, eventually. 
+###Process Layout<a id="processLayout" name="processLayout"></a>
+![Process layout diagram](http://i.imgur.com/ECU6H1V.png)
 
-Beyond that, the only other large obstacle will be in Phase 2, for the Python Plugin API should probably have a server side as well. Stay tuned for that.
+###Plugin Loading<a id="pluginLoading" name="pluginLoading"></a>
+![Plugin loading flowchart](http://i.imgur.com/RDdSQOV.png)
+
+###Plugin Message Handling<a id="pluginMsg" name="pluginMsg"></a>
+![Plugin message handling flowchart](http://i.imgur.com/rIHJ7RZ.png)
