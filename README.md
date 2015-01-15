@@ -48,11 +48,11 @@ Then, during Phase 2, we will be writing a Python Plugin API. Fair warning: this
 <a id="clientDiagram" name="clientDiagram"></a>Client-Side Process Diagram and Flowcharts
 -----------------------------------------------
 
-###Process Layout<a id="processLayout" name="processLayout"></a>
+###<a id="processLayout" name="processLayout"></a>Process Layout
 ![Process layout diagram](http://i.imgur.com/ECU6H1V.png)
 
-###Plugin Loading<a id="pluginLoading" name="pluginLoading"></a>
+###<a id="pluginLoading" name="pluginLoading"></a>Plugin Loading
 ![Plugin loading flowchart](http://i.imgur.com/RDdSQOV.png)
 
-###Plugin Message Handling<a id="pluginMsg" name="pluginMsg"></a>
+###<a id="pluginMsg" name="pluginMsg"></a>Plugin Message Handling
 ![Plugin message handling flowchart](http://i.imgur.com/rIHJ7RZ.png)
