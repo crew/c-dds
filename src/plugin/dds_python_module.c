@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <Python.h>
-#include "dds_globals.h"
+#include "../dds_globals.h"
+#include "../dict.h"
 #include "dds_python.h"
-#include "dict.h"
 
 // v0.1 (Test): Converts to one of our Dict objects & dumps
 static PyObject* py_send_message_meth(PyObject *self, PyObject* msg_dict){

@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "dict.h"
+#include "../dict.h"
 struct _pyobj_list{
 	PyObject* plist;
 };

@@ -6,12 +6,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "dds_globals.h"
+#include "../dds_globals.h"
+#include "../dict.h"
 #include "dds_piobj_list.h"
-#include "dict.h"
 
 #define PLUGINS_FOLDER "Plugins."
-#define PLUGINS_PATH "../Plugins/"
+#define PLUGINS_PATH "../../Plugins/"
 typedef struct _plugin_thread{
 	char name[64];
 	pthread_t thread;

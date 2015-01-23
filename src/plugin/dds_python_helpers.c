@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <Python.h>
-#include "dict.h"
+#include "../dict.h"
+#include "../dds_globals.h"
 #include "dds_python.h"
-#include "dds_globals.h"
 
 static Dict *parse_py_list(PyObject *lst){
     Dict *ret = make_dict();
