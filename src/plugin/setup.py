@@ -5,7 +5,9 @@
 
 from distutils.core import setup, Extension
 
-dds_mod = Extension('dds', sources = ['dds_python_module.c', '../dict.c', '../dds_globals.c', 'dds_python_helpers.c'])
+dds_mod = Extension('dds', sources = ['dds_python_module.c', 'dds_python_helpers.c'],
+                                     runtime_library_dirs=['../build'],library_dirs=['../../build'],libraries=['dds'])
+                                     #extra_compile_args=['-L../../build -ldds'])
 
 setup (name = 'DDS Plugin API',
             version = '0.1',

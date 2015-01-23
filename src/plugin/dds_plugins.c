@@ -121,7 +121,7 @@ void give_callback_registration_oppertunity(PyObject* plugin, PyObject* call_bac
 		printf("Couldn't get setup method...\n");
 		PyErr_Print();
 	}
-	PyObject* arg_tuple = PyTuble_New((Py_ssize_t)2);
+	PyObject* arg_tuple = PyTuple_New((Py_ssize_t)2);
 	if(!arg_tuple){
 		printf("Couldn't make the argument tuple...\n");
 		PyErr_Print();
@@ -160,7 +160,7 @@ thread_container* init_dds_python(Dict* config){
 
 		cur_plugin = strtok(plugins_list_str, ",");
 		while(cur_plugin){
-			import_plugin(cur_plugin);
+			//import_plugin(cur_plugin);
 			init_plugin(cur_plugin, plugin_list);
 			cur_plugin = strtok(NULL, ",");
 		}
@@ -215,7 +215,7 @@ thread_container* init_dds_python(Dict* config){
 		}
 		Py_DECREF(mt_tuple);
 		Py_DECREF(cb_dict);
-		del_obj_list(plugin_list);
+		del_object_list(plugin_list);
 		return result;
 	}
 }

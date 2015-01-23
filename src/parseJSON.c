@@ -602,6 +602,16 @@ char *message_to_json(socket_message *msg) {
     cJSON_Delete(root);
     return ret;
 }
+
+// Warning: Deletes dictionary
+char *dict_to_raw_json(Dict *dct) {
+    cJSON *parsed = dict_to_cJSON(dct);
+    delete_dict_and_contents(dct);
+    char* ret = cJSON_PrintUnformatted(parsed);
+    cJSON_Delete(parsed);
+    return ret;
+}
+
 inline static void del_meta(Dict* tdel){
 	if(tdel){
 		if(tdel->type == T_ARR || tdel->type == T_DICT){
