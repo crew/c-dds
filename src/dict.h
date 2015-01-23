@@ -1,9 +1,7 @@
 #ifndef DICT_HEAD
 #define DICT_HEAD
+#include "dds_globals.h"
 
-typedef enum {
-    T_INT, T_DOUBLE, T_CHAR, T_POINT_INT, T_POINT_DOUBLE, T_POINT_CHAR, T_POINT_VOID, T_NULL, T_ARR, T_DICT
-} VAL_TYPE;
 
 typedef struct _dict{
 	char* key;

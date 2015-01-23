@@ -4,7 +4,7 @@
 #define DDS_MESSAGE_HEAD
 
 typedef struct _dds_msgbuf{
-	long mtype;
+	VAL_TYPE mtype;
 	void* payload;
 }dds_msgbuf;
 

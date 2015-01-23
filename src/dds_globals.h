@@ -19,4 +19,9 @@
 #define free(a) ({free(a);a = NULL;})
 extern int in_heap(void *address);
 extern char *LOCAL_NAME;
+
+typedef enum {
+    T_INT, T_DOUBLE, T_CHAR, T_POINT_INT, T_POINT_DOUBLE, T_POINT_CHAR, T_POINT_VOID, T_NULL, T_ARR, T_DICT
+} VAL_TYPE;
+
 #endif /* SRC_DDS_GLOBALS_H_ */
