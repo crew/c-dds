@@ -23,7 +23,7 @@ typedef struct _dds_gtk_args{
 	char* cur_url;
 	char previous_url[MAX_URL_LEN];
 }timeout_args;
-static dds_sock global_sock;
+
 static timeout_args* global_args;
 static pid_t gtk_id;
 gboolean gtk_update_page(void* arg_void){

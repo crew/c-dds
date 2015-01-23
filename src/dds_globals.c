@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "dds_globals.h"
-
 /*
  * Returns true if the given
  * pointer is within the heap
