@@ -1,19 +1,19 @@
 
 OUT=run
-PKGS=`pkg-config --cflags --libs gtk+-3.0 webkitgtk-3.0 glib-2.0`
+PKGS=`pkg-config --cflags --libs gtk+-3.0 webkitgtk-3.0 glib-2.0 `
 CFLAGS=-c $(PKGS)
 BUILDDIR=build
 SRCS=main.c dds_globals.c dict.c readcfg.c parseJSON.c cJSON.c gtkWindow.c dds_io.c dds_sem.c dds_slides.c
 ENDARGS=-lrt -lm -lc $(PKGS)
 OBJS=$(SRCS:.c=.o)
 ARM_HUH=$($(lscpu) | grep arm)
-ifneq ($(ARM_HUH), "")
+ifneq ($(ARM_HUH),)
 	ARCH= -march=armv6zk -mcpu=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp
 else
 	ARCH=
 endif
 	
-CC=gcc -DCONFIG_PATH=\"${PWD}/../Configs/PIE.conf\" -DKEY_PATH=\"$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))/main.c\" $(ARCH)
+CC=gcc -I/usr/include/python2.7 -lpython2.7 -DCONFIG_PATH=\"${PWD}/../Configs/PIE.conf\" -DKEY_PATH=\"$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))/main.c\" $(ARCH)
 
 
 

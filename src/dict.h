@@ -24,6 +24,7 @@ VAL_TYPE DICT_GET_TYPE(Dict* dict, ...);
 void* DICT_OVERRIDE_TYPE(Dict* dict, VAL_TYPE new_type, ...);
 int dict_remove_entry(Dict* dict, char* key); 
 int dict_detatch_entry(Dict* d, char* key);
+void dump_dict(Dict*);
 #define dict_get_val(...) DICT_GET_VAL(__VA_ARGS__, NULL)
 #define dict_get_type(...) DICT_GET_TYPE(__VA_ARGS__, NULL)
 #define dict_override_type(...) DICT_OVERRIDE_TYPE(__VA_ARGS__, NULL)

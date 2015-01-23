@@ -73,7 +73,7 @@ void del_last(Dict* d, int freeContents){
 void _delete_dict(Dict* d, int freeContents){
 	int size = dict_size(d);
 	int i = 0;
-	for(i; i<size;i++){
+	for(; i<size;i++){
 		del_last(d, freeContents);
 	}
 	free(d);
@@ -111,10 +111,26 @@ Dict* DICT_GET_KEYPAIR(Dict* d, va_list arguments){
 }
 void* DICT_GET_VAL(Dict* d, ...){
 	va_list args;
+	Dict *cur = d->next;
+	void *ret = NULL;
+	char *k;
+	_Bool first = 1;
 	va_start(args,d);
-	void *kp = DICT_GET_KEYPAIR(d,args);
+	while((k = va_arg(args, char *)) != NULL){
+		if(first){first = 0;}
+		else{cur = ((Dict*)ret)->next;}
+		if(!cur){printf("WARNING: Key %s not found in dictionary. Returning null.\n", k); return NULL;}
+		while(cur != NULL){
+			if(!strcmp(k,cur->key)){
+				ret = cur->value;
+				break;
+			}
+			cur = cur->next;
+		}
+		if(!cur){printf("WARNING: Key %s not found in dictionary. Returning null.\n", k); return NULL;}
+	}
 	va_end(args);
-	return (kp == NULL) ? kp : ((Dict*)kp)->value;
+	return ret;
 }
 void* DICT_PUT(Dict* d, char* key, void* val, VAL_TYPE vtype){
 	if(!val){vtype = T_NULL;}
@@ -139,10 +155,26 @@ void* DICT_PUT(Dict* d, char* key, void* val, VAL_TYPE vtype){
 }
 VAL_TYPE DICT_GET_TYPE(Dict* dct, ...){
 	va_list args;
-	va_start(args, dct);
-	Dict *kp = DICT_GET_KEYPAIR(dct,args);
+	Dict *cur = dct->next;
+	Dict *ret = NULL;
+	char *k;
+	_Bool first = 1;
+	va_start(args,dct);
+	while((k = va_arg(args, char *)) != NULL){
+		if(first){first = 0;}
+		else{cur = ((Dict*)((Dict*)ret)->value)->next;}
+		if(!cur){printf("WARNING: Key %s not found in dictionary. Returning null.\n", k); return T_NULL;}
+		while(cur != NULL){
+			if(!strcmp(k,cur->key)){
+				ret = cur;
+				break;
+			}
+			cur = cur->next;
+		}
+		if(!cur){printf("WARNING: Key %s not found in dictionary. Returning null.\n", k); return T_NULL;}
+	}
 	va_end(args);
-	return kp->type;
+	return (ret) ? ret->type : T_NULL;
 }
 void* DICT_OVERRIDE_TYPE(Dict* dct, VAL_TYPE new_type, ...){
 	va_list args;
