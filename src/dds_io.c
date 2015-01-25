@@ -1,4 +1,3 @@
-#include <string.h>
 #include "dds_io.h"
 //PASSED MEMCHECK (BY EYE) ALL POINTERS MUST HAVE BEEN FREED
 int dorecv(dds_sock s, char* buf, int amt, int flags){
@@ -229,10 +228,10 @@ dds_sock make_local_connection(void){
 
 }
 */
-#define DDS_PIPE "../bin/.dds_pipe"
+#define DDS_PIPE "../build/.dds_pipe"
 int setup_pipe(void){
 	int fd;
-	mknod(DDS_PIPE, S_IFIFO | 0666, 0);
+	mkfifo(DDS_PIPE, S_IFIFO | 0666);
 	fd = open(DDS_PIPE, O_WRONLY | O_NDELAY);
 	return fd;
 }
@@ -246,7 +245,7 @@ void write_to_pipe(char *to_write){
 }
 int open_pipe(void){
 	int fd;
-	mknod(DDS_PIPE, S_IFIFO | 0666, 0);
+	//mkfifo(DDS_PIPE, S_IFIFO | 0666);
 	fd = open(DDS_PIPE, O_RDONLY | O_NDELAY);
 	return fd;
 }
@@ -261,13 +260,55 @@ char *read_from_pipe(void){
 			return NULL;
 		}
 		else {
+			if(num == 0){ return NULL; }
 			raw[num] = '\0';
 			char *ret = malloc(num + 1);
 			strcpy(ret,raw);
+			printf("read_from_pipe done:\nraw: %s\nret: %s\n",raw,ret);
 			return ret;
 		}
 	} while (num > 0);
 	return NULL;
+}
+void *register_listener(void *arg){
+	dds_sock listener = (dds_sock) arg;
+	char buf[4098];
+	listener->fd = open(DDS_PIPE, O_RDONLY);
+	while(1){
+		int num = read(listener->fd, buf, 4098);
+		do {
+			if(num == -1){
+				perror("read");
+				return NULL;
+			}
+			else {
+				if(num!=0){
+					buf[num] = '\v';
+					char *resized = (char*)malloc(listener->bytes + 1 + num);
+					memcpy(resized, listener->data, listener->bytes);
+					memcpy(resized + listener->bytes, buf, num + 1);
+					free(listener->data);
+					listener->data = resized;
+					listener->bytes += num + 1;
+					listener->msgs = 0;
+					int i = 0;
+					for(;i < listener->bytes; ++i){
+						if(resized[i] == '\v')
+							(listener->msgs)++;
+					}
+					memset(buf,0,sizeof(buf));
+					num = 0;
+				}
+			}
+		} while (num > 0);
+	}
+	return NULL;
+}
+pthread_t listener_thread;
+dds_sock plugin_listener(void){
+	dds_sock ret = make_dds_socket();
+	pthread_create(&listener_thread, NULL, register_listener, ret);
+	return ret;
 }
 dds_sock open_connection(char* addr, char* port){
 	printf("Attempting to connect to %s:%s\n", addr, port);

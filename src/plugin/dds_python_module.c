@@ -44,15 +44,17 @@ static PyObject* py_send_message_meth(PyObject *self, PyObject* args){
     //printf("Thanks for calling me, %s!\n",class);
     Dict *msg = make_dict();
     char *msgcontent = dict_to_raw_json(dct);
-    dict_put(msg,"content",DYN_STR(msgcontent));
+    dict_put(msg,DYN_STR("content"),DYN_STR(msgcontent));
     char dt[30];
     strftime(dt,30,"%Y-%m2-%d2T%H2-%M2-%S2+00:00",datetime);
     //dict_put(msg,"datetime",dt);
-    dict_put(msg,"src",DYN_STR(class));
-    dict_put(msg,"pluginDest",DYN_STR(PyString_AsString(pyPluginDest)));
-    dict_put(msg,"dest",DYN_STR(PyString_AsString(pyDest)));
-
+    dict_put(msg,DYN_STR("src"),DYN_STR(class));
+    dict_put(msg,DYN_STR("pluginDest"),DYN_STR(PyString_AsString(pyPluginDest)));
+    if(pyDest){
+        dict_put(msg,DYN_STR("dest"),DYN_STR(PyString_AsString(pyDest)));
+    }
     char *to_send = dict_to_raw_json(msg);
+    printf("Sending: %s\n", to_send);
     write_to_pipe(to_send);
     // dct freed by dict_to_raw_json...setting to null to be safe
     dct = NULL;

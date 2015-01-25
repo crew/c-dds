@@ -148,10 +148,10 @@ Dict *action_data_to_dict(action_data *to_parse){
 	Dict *to_ret = make_dict();
 	switch(to_parse->type){
 	case ADT_SLIDE:
-		dict_put(to_ret, "type", "slide");
-		dict_put(to_ret, "ID", DYN_NON_POINT(to_parse->slide_data->id));
-		dict_put(to_ret, "location", DYN_STR(to_parse->slide_data->location));
-		dict_put(to_ret, "duration", DYN_NON_POINT(to_parse->slide_data->duration));
+		dict_put(to_ret, DYN_STR("type"), DYN_STR("slide"));
+		dict_put(to_ret, DYN_STR("ID"), DYN_NON_POINT(to_parse->slide_data->id));
+		dict_put(to_ret, DYN_STR("location"), DYN_STR(to_parse->slide_data->location));
+		dict_put(to_ret, DYN_STR("duration"), DYN_NON_POINT(to_parse->slide_data->duration));
 		break;
 	default:
 		break;
@@ -416,26 +416,26 @@ Dict *cJSON_to_dict(cJSON *raw_cJSON){
 		if((cur->type == cJSON_Array) || (cur->type == cJSON_Object)){
 			Dict *d = cJSON_to_dict(cur->child);
 			
-			dict_put(dct, *arr_key, d);
+			dict_put(dct, DYN_STR(*arr_key), d);
 			//DICT_PUT(dct, arr_key, cJSON_to_dict(cur->child), T_ARR);
 			if(cur->type == cJSON_Array){dict_override_type(dct,T_ARR,*arr_key);}
 		}
 		else if(cur->type == cJSON_NULL){
-			dict_put(dct,*arr_key,NULL);
+			dict_put(dct,DYN_STR(*arr_key),NULL);
 		}
 		else{
 			if(cur->type == cJSON_String){
-				dict_put(dct, *arr_key, DYN_STR(cur->valuestring));
+				dict_put(dct, DYN_STR(*arr_key), DYN_STR(cur->valuestring));
 			}
 			else if(cur->type == cJSON_Number && ((double)cur->valueint != cur->valuedouble)){
 				double *to_put = malloc(sizeof(cur->valuedouble));
 				*to_put = cur->valuedouble;
-				dict_put(dct, *arr_key, to_put);
+				dict_put(dct, DYN_STR(*arr_key), to_put);
 			}
 			else{
 				int *to_put = malloc(sizeof(cur->valueint));
 				*to_put = cur->valueint;
-				dict_put(dct, *arr_key, to_put);
+				dict_put(dct, DYN_STR(*arr_key), to_put);
 			}
 		}
 		cur = cur->next;
@@ -533,9 +533,17 @@ cJSON *dict_to_cJSON(Dict *d){
 	return ret;
 }
 
-socket_message *json_to_message(char *str) {
-    cJSON *input, *content;
-    input = cJSON_Parse(str);
+short socket_message_pred(cJSON *msg){
+    // Most reliable difference, for now
+    if(cJSON_GetObjectItem(msg,"action")){
+        return 1;
+    }
+    return 0;
+}
+
+socket_message *json_to_socket_message(cJSON *input) {
+    cJSON *content;
+    //input = cJSON_Parse(str);
     Dict *input_dict = cJSON_to_dict(input->child);
     if(dict_get_type(input_dict,"content") == T_POINT_CHAR){
 	cJSON *ctemp = cJSON_Parse((char*)dict_get_val(input_dict,"content"));
@@ -572,13 +580,60 @@ socket_message *json_to_message(char *str) {
     msg->action = parse_action((char*)dict_get_val(input_dict,"action"));
     msg->content = msg_c;
     msg->src = parse_pie_dict_val(dict_get_val(input_dict,"src"));
-    msg->dest = parse_pie_dict_val(dict_get_val(input_dict,"dest"));
+    if(dict_has_key(input_dict,"dest")){msg->dest = parse_pie_dict_val(dict_get_val(input_dict,"dest"));}
     msg->plugin_dest = DYN_STR((char*)dict_get_val(input_dict,"pluginDest"));
     cJSON_Delete(input);
     //dump_dict(input_dict);
     delete_dict_and_contents(input_dict);
     return msg;
 }
+
+plugin_message *json_to_plugin_message(cJSON *input){
+    Dict *input_dict = cJSON_to_dict(input->child);
+    if(!dict_has_key(input_dict,"src") || 
+       !dict_has_key(input_dict,"pluginDest") || 
+       !dict_has_key(input_dict,"content")){
+        // Invalid Message
+        return NULL;
+    }
+    if(dict_get_type(input_dict,"content") == T_POINT_CHAR){
+        cJSON *ctemp = cJSON_Parse((char*)dict_get_val(input_dict,"content"));
+        dict_remove_entry(input_dict,"content");
+        dict_put(input_dict,DYN_STR("content"),cJSON_to_dict(ctemp->child));
+        cJSON_Delete(ctemp);
+    }
+    plugin_message *msg = malloc(sizeof(plugin_message));
+    msg->src = DYN_STR((char*)dict_get_val(input_dict,"src"));
+    if(dict_has_key(input_dict,"dest")){msg->dest = DYN_STR((char*)dict_get_val(input_dict,"dest"));}
+    else{msg->dest = NULL;}
+    msg->plugin_dest = DYN_STR((char*)dict_get_val(input_dict,"pluginDest"));
+    msg->content = (Dict*)dict_get_val(input_dict,"content");
+    dict_detatch_entry(input_dict,"content");
+    cJSON_Delete(input);
+    delete_dict_and_contents(input_dict);
+    return msg;
+}
+
+wrapped_message *json_to_message(char *str){
+    cJSON *input = cJSON_Parse(str);
+    /*cJSON *content = cJSON_GetObjectItem(input,"content");
+    if(content && content->type == cJSON_String){
+        content->child = cJSON_Parse(content->valuestring)->child;
+        content->valuestring = NULL;
+        content->type = cJSON_Object;
+    }*/
+    wrapped_message *ret = malloc(sizeof(wrapped_message));
+    ret->is_socket_msg = socket_message_pred(input);
+    if(ret->is_socket_msg){
+        ret->sm = json_to_socket_message(input);
+    }
+    else{
+        ret->pm = json_to_plugin_message(input);
+    }
+    return ret;
+}
+
+
 
 char *message_to_json(socket_message *msg) {
 
@@ -589,7 +644,7 @@ char *message_to_json(socket_message *msg) {
     cJSON_AddStringToObject(root, "datetime", datetime);
     cJSON_AddStringToObject(root, "action", action_string(msg->action));
     cJSON_AddStringToObject(root, "src", pie_to_json(msg->src));
-    cJSON_AddStringToObject(root, "dest", pie_to_json(msg->dest));
+    if(msg->dest){cJSON_AddStringToObject(root, "dest", pie_to_json(msg->dest));}
     if(msg->plugin_dest){
     	cJSON_AddStringToObject(root, "pluginDest", msg->plugin_dest);
     }
@@ -664,6 +719,20 @@ void delete_socket_message(socket_message* m){
 	free(m);
 }
 
+void wrapped_message_cleanup(wrapped_message *msg){
+    if(msg->is_socket_msg){
+        if(msg->sm)
+            delete_socket_message(msg->sm);
+    }
+    else{
+        free(msg->pm->src);
+        free(msg->pm->dest);
+        free(msg->pm->plugin_dest);
+        if(msg->pm->content)
+            delete_dict_and_contents(msg->pm->content);
+    }
+    free(msg);
+}
 void dump_message_json_str(char* str){
 	cJSON *input;
 	input = cJSON_Parse(str);

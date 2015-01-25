@@ -2,7 +2,6 @@
 #include "dds_plugins.h"
 Dict* listener_flags;
 Dict* msg_queue;
-struct listener_args { pthread_mutex_t* mtx; pthread_cond_t* cond; char* name; PyObject *add_msg_method; };
 
 thread_container* make_thread_container(void){
 	thread_container* tmp = (thread_container*)malloc(sizeof(thread_container));
@@ -46,9 +45,9 @@ void thread_container_add(thread_container* c, plugin_thread* to_add){
 void init_plugin(char* plugin, obj_list container){
 	char* myplg = DYN_STR(plugin);
 	char* path = (char*)malloc(strlen(plugin)+strlen(PLUGINS_PATH)+1);
-	if(isupper(myplg[0])){
+	/*if(isupper(myplg[0])){
 		myplg[0] = tolower(myplg[0]);
-	}
+	}*/
 	strcpy(path, PLUGINS_PATH);
 	strcat(path, myplg);
 	PyObject* plug_module = PyImport_ImportModule(path);
@@ -56,10 +55,10 @@ void init_plugin(char* plugin, obj_list container){
 		printf("Couldn't import the module plugin module...\n");
 		PyErr_Print();
 	}
-	if(islower(myplg[0])){
+	/*if(islower(myplg[0])){
 		myplg[0] = toupper(myplg[0]);
 
-	}
+	}*/
 	PyObject* clazz = PyObject_GetAttrString(plug_module, myplg);
 	if(!clazz){
 		printf("Couldn't get the plugin class...\n");
@@ -86,7 +85,7 @@ PyObject* make_callback_dict(obj_list plugin_list){
 	int index = 0;
 
  
-	while(index++ < obj_list_len(plugin_list)){
+	while(index < obj_list_len(plugin_list)){
 		PyObject* cur = obj_list_get(plugin_list, index);
 		//Might need to add self reference to args, dunno
 		PyObject* tuple = PyTuple_New((Py_ssize_t)0);
@@ -118,6 +117,7 @@ PyObject* make_callback_dict(obj_list plugin_list){
 		PyDict_SetItem(dict, plugin_name, cur_plugin_write);
 		Py_DECREF(plugin_name);
 		Py_DECREF(cur_plugin_write);
+		index++;
 	}
 	return dict;
 }
@@ -151,7 +151,7 @@ void give_callback_registration_oppertunity(PyObject* plugin, PyObject* call_bac
 void send_plugin_message(char* name, Dict* msg){
 	if(dict_has_key(listener_flags,name)){
 		while(dict_has_key(msg_queue,name)){}
-		dict_put(msg_queue,name,msg);
+		dict_put(msg_queue,DYN_STR(name),msg);
 		pthread_cond_signal((pthread_cond_t*)dict_get_val(listener_flags,name));
 	}
 }
@@ -162,17 +162,21 @@ void* message_listener(void* rawargs){
 		pthread_cond_wait(args.cond, args.mtx);
 		PyObject *msg_tuple = PyTuple_New(1);
 		PyTuple_SetItem(msg_tuple,0,(parse_dict_to_pydict(dict_get_val(msg_queue,args.name))));
+		PyGILState_STATE gil = PyGILState_Ensure();
 		PyObject_Call(args.add_msg_method, msg_tuple, NULL);
+		PyGILState_Release(gil);
 		Py_DECREF(msg_tuple);
 		dict_remove_entry(msg_queue,args.name);
 	}
 }
 
-struct run_args { struct listener_args *largs; PyObject *others; pthread_t* listener_t;};
+
 void* run_plugin(void* rawargs){
 	struct run_args args = *(struct run_args*)rawargs;
+	//Py_Initialize();
+	PyGILState_STATE gil = PyGILState_Ensure();
 	if(args.listener_t){
-		struct listener_args to_pass = *args.largs;
+		struct listener_args to_pass = args.largs;
 		pthread_create(args.listener_t,NULL, message_listener, &to_pass);
 	}
 	PyObject* runMethod = args.others;
@@ -180,19 +184,23 @@ void* run_plugin(void* rawargs){
 	PyObject_Call(runMethod, mt_tuple, NULL);
 	Py_DECREF(mt_tuple);
 	Py_DECREF(runMethod);
+	PyGILState_Release(gil);
 	pthread_exit(0);
 }
 //Returns an array of all the threads that are running....
 thread_container* init_dds_python(Dict* config){
 	listener_flags = make_dict();
 	msg_queue = make_dict();
+	setenv("PYTHONPATH", "..", 0);
 	Py_Initialize();
+	PyEval_InitThreads();
+	PyGILState_STATE gil = PyGILState_Ensure();
 	if(dict_has_key(config, "plugins")){
-		Dict* val = dict_get_val(config, "plugins");
+		char* val = dict_get_val(config, "plugins");
 
 		
 		char* cur_plugin;
-		char* plugins_list_str = val->value;
+		char* plugins_list_str = val;
 		obj_list plugin_list = new_object_list();
 
 		cur_plugin = strtok(plugins_list_str, ",");
@@ -243,15 +251,21 @@ thread_container* init_dds_python(Dict* config){
 					printf("Couldn't get the run method...\n");
 					PyErr_Print();
 				}else{
+				//	PyGILState_Release(gil);
 					if(has_add_msg){
 						struct listener_args largs = { &(tmp_thread->mutex), &(tmp_thread->cond), tmp_thread->name, add_message };
-						struct run_args to_pass = { &largs, runMethod, &(tmp_thread->listener_thread) };
-						pthread_create(&tmp_thread->thread, NULL, run_plugin, &to_pass);
+						struct run_args to_pass = { largs, runMethod, &(tmp_thread->listener_thread) };
+						tmp_thread->rargs = malloc(sizeof(to_pass));
+						memcpy(tmp_thread->rargs,&to_pass,sizeof(to_pass));
+						pthread_create(&tmp_thread->thread, NULL, run_plugin, tmp_thread->rargs);
 					}
 					else{
-						struct run_args to_pass = { NULL, runMethod, NULL };
-						pthread_create(&tmp_thread->thread, NULL, run_plugin, &to_pass);
+						struct run_args to_pass = { (struct listener_args){NULL, NULL, NULL, NULL}, runMethod, NULL };
+						tmp_thread->rargs = malloc(sizeof(to_pass));
+						memcpy(tmp_thread->rargs,&to_pass,sizeof(to_pass));
+						pthread_create(&tmp_thread->thread, NULL, run_plugin, tmp_thread->rargs);
 					}
+				//	gil = PyGILState_Ensure();
 				
 				}
 				thread_container_add(result, tmp_thread);
@@ -264,6 +278,8 @@ thread_container* init_dds_python(Dict* config){
 		Py_DECREF(mt_tuple);
 		Py_DECREF(cb_dict);
 		del_object_list(plugin_list);
+		PyEval_ReleaseLock();
+		PyGILState_Release(gil);
 		return result;
 	}
 }

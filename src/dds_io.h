@@ -12,6 +12,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
+#include <pthread.h>
 
 #define TRY_COUNT 5
 #define DDS_END_MSG '\v'
@@ -28,6 +29,7 @@ typedef _dds_sock*  dds_sock;
 int net_order(int);
 int host_order(int);
 
+dds_sock plugin_listener(void);
 dds_sock open_connection(char* addr, char* port);
 int close_connection(dds_sock);
 //Writes the given string to the socket, gives a non-blocking flag, this call will not block

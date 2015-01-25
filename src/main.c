@@ -14,6 +14,7 @@
 #include "parseJSON.h"
 #include "dds_slides.h"
 #include "dds_globals.h"
+#include "plugin/dds_plugins.h"
 //#define KEY_PATH "/home/pi/c-dds/src/main.c"
 #define MAX_URL_LEN 1024
 
@@ -132,7 +133,7 @@ int main(int argc, char** argv){
 	strcpy(global_args->cur_url,(char*)dict_get_val(config, "init_page"));
 	global_args->view = make_view(global_args->cur_url);
 	printf("Initial display is %s\n", global_args->cur_url);
-
+	init_dds_python(config);
 
 	global_sock = NULL;
 	gtk_id = fork();
@@ -167,6 +168,7 @@ int main(int argc, char** argv){
 		//Main loop
 		time_t start_measure;
 		time(&start_measure);
+		dds_sock plugins = plugin_listener();
 
 		while(1){
 			time_t cur_time;
@@ -181,18 +183,25 @@ int main(int argc, char** argv){
 				release_dds_sem(lock);
 				time(&start_measure);
 			}
-			//Doesn't block...
-			read_db(to_server,512);
-			char *from_module;
-			while(from_module = read_from_pipe()){
-				socket_message *py_msg = json_to_message(from_module);
-				if(!strcmp(py_msg->dest->name,LOCAL_NAME)){
-					//plugin_send_message(py_msg->pluginDest, py_msg->content);
+			//read_db(plugins,512);
+			while(get_msg_count(plugins) > 0){
+				char *from_module = malloc(get_nxt_msg_size(plugins));
+				get_msg(plugins,from_module);
+				wrapped_message *wm = json_to_message(from_module);
+				plugin_message *py_msg = wm->pm;
+				printf("Got message: %s\n", from_module);
+				if(!py_msg->dest || !strcmp(py_msg->dest,LOCAL_NAME)){
+					send_plugin_message(py_msg->plugin_dest, py_msg->content);
 				}
 				else{
-					write_sb(to_server, from_module, sizeof(from_module));
+					write_sb(to_server, from_module, strlen(from_module));
 				}
+				// Detatch message
+				py_msg->content = NULL;
+				wrapped_message_cleanup(wm);
 			}
+			//Doesn't block...
+			read_db(to_server,512);
 			while(get_msg_count(to_server) > 0){
 				printf("I have a message...\n");
 				int nxt_size = get_nxt_msg_size(to_server);
@@ -202,8 +211,10 @@ int main(int argc, char** argv){
 				printf("Got message");
 				dump_message_json_str(msg_buf);
 				printf("\n");
-				socket_message* p_msg = json_to_message(msg_buf);
+				wrapped_message* wp_msg = json_to_message(msg_buf);
 				free(msg_buf);
+				if(wp_msg->is_socket_msg){
+				socket_message* p_msg = wp_msg->sm;
 				printf("Got message with action %d\n", p_msg->action);
 				SLIDE_ACTION action = p_msg->action;
 				if(action == LOAD_SLIDES){
@@ -286,8 +297,16 @@ int main(int argc, char** argv){
 				}
 				if(p_msg){
 					printf("Deleteing the message...\n");
-					delete_socket_message(p_msg);
+					wrapped_message_cleanup(wp_msg);
+					//delete_socket_message(p_msg);
 				}
+			}
+			else {
+				send_plugin_message(wp_msg->pm->plugin_dest,wp_msg->pm->content);
+				// Detatch entry
+				wp_msg->pm->content = NULL;
+				wrapped_message_cleanup(wp_msg);
+			}
 			}
 
 		}

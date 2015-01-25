@@ -60,10 +60,24 @@ typedef struct m_root_struct {
     pie *dest;
 } socket_message;
 
-extern socket_message *json_to_message(char *str);
+// Simple Messages from Plugins
+typedef struct pm_struct {
+    char *dest;
+    char *plugin_dest;
+    char *src;
+    Dict *content;
+} plugin_message;
+
+// Message Return Value
+typedef struct _wm_struct {
+    short is_socket_msg;
+    union { socket_message *sm; plugin_message *pm; }
+} wrapped_message;
+
+extern wrapped_message *json_to_message(char *str);
 extern char *message_to_json(socket_message *msg);
 extern void delete_socket_message(socket_message *msg);
 extern void dump_message_json_str(char *str);
 extern char *dict_to_raw_json(Dict*);
-
+extern void wrapped_message_cleanup(wrapped_message*);
 #endif

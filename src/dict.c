@@ -22,8 +22,8 @@ Dict* simple_get_val(Dict* d, char* key){
 Dict* make_dict_with(char* key, void* value){
 	Dict* d = (Dict*) malloc(sizeof(Dict));
 	// Make sure that the key has been malloc-ed
-	char *true_key = (key == NULL || in_heap(key)) ? key : DYN_STR(key);
-	d->key = true_key;
+	//char *true_key = (key == NULL || in_heap(key)) ? key : DYN_STR(key);
+	d->key = key;
 	d->value = value;
 	if(!key && !value){d->type = T_NULL;} // Empty dictionary
 	d->next = NULL;
@@ -98,7 +98,7 @@ Dict* DICT_GET_KEYPAIR(Dict* d, va_list arguments){
 	while((k = va_arg(args, char *)) != NULL){
 		if(first){first = 0;}
 		else{cur = ((Dict*)((Dict*)ret)->value)->next;}
-		if(!cur){printf("WARNING: Key %s not found in dictionary. Returning null.\n", k); return NULL;}
+		if(!cur){printf("DICT_GET_KEYPAIR: WARNING: Key %s not found in dictionary. Returning null.\n", k); return NULL;}
 		while(cur != NULL){
 			if(!strcmp(k, cur->key)){
 				ret = cur;
@@ -119,7 +119,7 @@ void* DICT_GET_VAL(Dict* d, ...){
 	while((k = va_arg(args, char *)) != NULL){
 		if(first){first = 0;}
 		else{cur = ((Dict*)ret)->next;}
-		if(!cur){printf("WARNING: Key %s not found in dictionary. Returning null.\n", k); return NULL;}
+		if(!cur){printf("DICT_GET_VAL(1): WARNING: Key %s not found in dictionary. Returning null.\n", k); return NULL;}
 		while(cur != NULL){
 			if(!strcmp(k,cur->key)){
 				ret = cur->value;
@@ -127,7 +127,7 @@ void* DICT_GET_VAL(Dict* d, ...){
 			}
 			cur = cur->next;
 		}
-		if(!cur){printf("WARNING: Key %s not found in dictionary. Returning null.\n", k); return NULL;}
+		if(!cur){printf("DICT_GET_VAL(2): WARNING: Key %s not found in dictionary. Returning null.\n", k); return NULL;}
 	}
 	va_end(args);
 	return ret;
@@ -163,7 +163,7 @@ VAL_TYPE DICT_GET_TYPE(Dict* dct, ...){
 	while((k = va_arg(args, char *)) != NULL){
 		if(first){first = 0;}
 		else{cur = ((Dict*)((Dict*)ret)->value)->next;}
-		if(!cur){printf("WARNING: Key %s not found in dictionary. Returning null.\n", k); return T_NULL;}
+		if(!cur){printf("DICT_GET_TYPE(1): WARNING: Key %s not found in dictionary. Returning null.\n", k); return T_NULL;}
 		while(cur != NULL){
 			if(!strcmp(k,cur->key)){
 				ret = cur;
@@ -171,7 +171,7 @@ VAL_TYPE DICT_GET_TYPE(Dict* dct, ...){
 			}
 			cur = cur->next;
 		}
-		if(!cur){printf("WARNING: Key %s not found in dictionary. Returning null.\n", k); return T_NULL;}
+		if(!cur){printf("DICT_GET_TYPE(2): WARNING: Key %s not found in dictionary. Returning null.\n", k); return T_NULL;}
 	}
 	va_end(args);
 	return (ret) ? ret->type : T_NULL;
