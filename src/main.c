@@ -183,6 +183,16 @@ int main(int argc, char** argv){
 			}
 			//Doesn't block...
 			read_db(to_server,512);
+			char *from_module;
+			while(from_module = read_from_pipe()){
+				socket_message *py_msg = json_to_message(from_module);
+				if(!strcmp(py_msg->dest->name,LOCAL_NAME)){
+					//plugin_send_message(py_msg->pluginDest, py_msg->content);
+				}
+				else{
+					write_sb(to_server, from_module, sizeof(from_module));
+				}
+			}
 			while(get_msg_count(to_server) > 0){
 				printf("I have a message...\n");
 				int nxt_size = get_nxt_msg_size(to_server);

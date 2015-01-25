@@ -6,6 +6,7 @@
 #include "../dict.h"
 #include "../parseJSON.h"
 #include "dds_python.h"
+#include "../dds_io.h"
 
 // v0.1 (Test): Converts to one of our Dict objects & dumps
 static PyObject* py_send_message_meth(PyObject *self, PyObject* args){
@@ -52,7 +53,7 @@ static PyObject* py_send_message_meth(PyObject *self, PyObject* args){
     dict_put(msg,"dest",DYN_STR(PyString_AsString(pyDest)));
 
     char *to_send = dict_to_raw_json(msg);
-    printf("Would send: %s\n",to_send);
+    write_to_pipe(to_send);
     // dct freed by dict_to_raw_json...setting to null to be safe
     dct = NULL;
 

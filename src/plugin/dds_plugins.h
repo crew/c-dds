@@ -10,12 +10,16 @@
 #include "../dds_globals.h"
 #include "../dict.h"
 #include "dds_piobj_list.h"
+#include "dds_python.h"
 
 #define PLUGINS_FOLDER "Plugins."
 #define PLUGINS_PATH "../../Plugins/"
 typedef struct _plugin_thread{
 	char name[64];
 	pthread_t thread;
+	pthread_t listener_thread;
+	pthread_mutex_t mutex;
+	pthread_cond_t  cond;
 }plugin_thread;
 typedef struct _thread_container{
 	int size;

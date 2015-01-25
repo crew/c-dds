@@ -1,3 +1,4 @@
+#include <sys/shm.h>
 #include "dds_sem.h" 
 dds_sem dds_open_sem(const char* name, int value){
 	if(*name != '/'){
@@ -49,4 +50,67 @@ int release_dds_sem(dds_sem sem){
 		return 0;
 
 	}
+	return 1;
+}
+
+// Python Module Shared Memory Accessors
+// TODO: Abstract a little to clean up
+#define DDS_PYMOD_SEM "/dds_py_mod_sem"
+#define DDS_PYMOD_SHMEM "/dds_py_mod_shmem"
+
+inline dds_sem get_python_module_sem(void){
+	dds_sem pym_sem = dds_open_sem(DDS_PYMOD_SEM,1);
+	if(!try_dds_sem(pym_sem)){ return NULL; }
+	return pym_sem;
+}
+
+void *get_python_module_info_ptr(int extra_flags){
+	key_t shmemkey = ftok(DDS_PYMOD_SHMEM, 's');
+	if(shmemkey == -1){
+		perror("ftok");
+		return NULL;
+	}
+	int shmid = shmget(shmemkey, 1024, 0666 | extra_flags);
+	if(shmid == -1){
+		perror("shmget");
+		return NULL;
+	}
+	void *ret = shmat(shmid,NULL,0);
+	if(ret == (void*)-1){
+		perror("shmat");
+		return NULL;
+	}
+	return ret;
+}
+
+int python_module_info_cleanup(void *addr, dds_sem cur_sem){
+	int dt = shmdt(addr);
+	if(dt){
+		perror("shmdt");
+		return 0;
+	}
+	return release_dds_sem(cur_sem);
+}
+
+int set_python_module_info(dds_pymod_info info){
+	dds_sem pym_sem = get_python_module_sem();
+	if(!pym_sem){ return 0; }
+	dds_pymod_info shmptr = get_python_module_info_ptr(IPC_CREAT);
+	memcpy(shmptr,info,sizeof(*info));
+	return python_module_info_cleanup(shmptr,pym_sem);
+}
+dds_pymod_info get_python_module_info(void){
+	dds_pymod_info ret = malloc(sizeof(struct _dds_pymod_info));
+	if(!ret){
+		perror("malloc");
+		return NULL;
+	}
+	dds_sem pym_sem = get_python_module_sem();
+	if(!pym_sem){ return NULL; }
+	dds_pymod_info shmptr = get_python_module_info_ptr(0);
+	memcpy(ret,shmptr,sizeof(*shmptr));
+	if(!python_module_info_cleanup(shmptr,pym_sem)){
+		return NULL;
+	}
+	return ret;
 }

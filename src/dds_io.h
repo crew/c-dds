@@ -2,6 +2,7 @@
 #define DDS_IO
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <errno.h>
@@ -9,6 +10,7 @@
 #include <stddef.h>
 #include <unistd.h>
 #include <string.h>
+#include <fcntl.h>
 #include <arpa/inet.h>
 
 #define TRY_COUNT 5
@@ -55,6 +57,8 @@ int read_b(dds_sock s, int amt);
 //performs a read, does not allow blocking
 int read_db(dds_sock s, int amt);
 
+void write_to_pipe(char*);
+char *read_from_pipe(void);
 
 void err_quit(const char* str);
 #endif

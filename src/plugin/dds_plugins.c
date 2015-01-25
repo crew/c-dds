@@ -1,5 +1,9 @@
 
 #include "dds_plugins.h"
+Dict* listener_flags;
+Dict* msg_queue;
+struct listener_args { pthread_mutex_t* mtx; pthread_cond_t* cond; char* name; PyObject *add_msg_method; };
+
 thread_container* make_thread_container(void){
 	thread_container* tmp = (thread_container*)malloc(sizeof(thread_container));
 	tmp->size = 0;
@@ -22,6 +26,9 @@ plugin_thread* make_plugin_thread(char* name){
 	}else{
 		strcpy(tmp->name, name);
 	}
+	pthread_mutex_init(&(tmp->mutex), NULL);
+	pthread_cond_init(&(tmp->cond),NULL);
+	dict_put(listener_flags,name,(void*)(&(tmp->cond)));
 	return tmp;
 }
 void delete_plugin_thread(plugin_thread* thread){
@@ -121,14 +128,15 @@ void give_callback_registration_oppertunity(PyObject* plugin, PyObject* call_bac
 		printf("Couldn't get setup method...\n");
 		PyErr_Print();
 	}
-	PyObject* arg_tuple = PyTuple_New((Py_ssize_t)2);
+	PyObject* arg_tuple = PyTuple_New((Py_ssize_t)1);
 	if(!arg_tuple){
 		printf("Couldn't make the argument tuple...\n");
 		PyErr_Print();
 	}
-	PyTuple_SetItem(arg_tuple, 0, call_back_dict);
+	PyTuple_SetItem(arg_tuple, 0, Py_None);
+	//PyTuple_SetItem(arg_tuple, 0, call_back_dict);
 	//TODO setup runtimeVars, what are these even?
-	PyTuple_SetItem(arg_tuple, 1, Py_None);
+	//PyTuple_SetItem(arg_tuple, 1, Py_None);
 	PyObject* ret = PyObject_Call(setup, arg_tuple, NULL);
 	if(!ret){
 		printf("Couldn't call setup...\n");
@@ -139,8 +147,35 @@ void give_callback_registration_oppertunity(PyObject* plugin, PyObject* call_bac
 	Py_DECREF(arg_tuple);
 	Py_DECREF(setup);	
 }
-void* run_plugin(void* args){
-	PyObject* runMethod = (PyObject*)args;
+
+void send_plugin_message(char* name, Dict* msg){
+	if(dict_has_key(listener_flags,name)){
+		while(dict_has_key(msg_queue,name)){}
+		dict_put(msg_queue,name,msg);
+		pthread_cond_signal((pthread_cond_t*)dict_get_val(listener_flags,name));
+	}
+}
+
+void* message_listener(void* rawargs){
+	struct listener_args args = *(struct listener_args*)rawargs;
+	while(1) {
+		pthread_cond_wait(args.cond, args.mtx);
+		PyObject *msg_tuple = PyTuple_New(1);
+		PyTuple_SetItem(msg_tuple,0,(parse_dict_to_pydict(dict_get_val(msg_queue,args.name))));
+		PyObject_Call(args.add_msg_method, msg_tuple, NULL);
+		Py_DECREF(msg_tuple);
+		dict_remove_entry(msg_queue,args.name);
+	}
+}
+
+struct run_args { struct listener_args *largs; PyObject *others; pthread_t* listener_t;};
+void* run_plugin(void* rawargs){
+	struct run_args args = *(struct run_args*)rawargs;
+	if(args.listener_t){
+		struct listener_args to_pass = *args.largs;
+		pthread_create(args.listener_t,NULL, message_listener, &to_pass);
+	}
+	PyObject* runMethod = args.others;
 	PyObject* mt_tuple = PyTuple_New(0);
 	PyObject_Call(runMethod, mt_tuple, NULL);
 	Py_DECREF(mt_tuple);
@@ -149,6 +184,8 @@ void* run_plugin(void* args){
 }
 //Returns an array of all the threads that are running....
 thread_container* init_dds_python(Dict* config){
+	listener_flags = make_dict();
+	msg_queue = make_dict();
 	Py_Initialize();
 	if(dict_has_key(config, "plugins")){
 		Dict* val = dict_get_val(config, "plugins");
@@ -197,13 +234,24 @@ thread_container* init_dds_python(Dict* config){
 				}
 				Py_DECREF(getName);
 				plugin_thread* tmp_thread = make_plugin_thread(PyString_AS_STRING(nameStr));
+				int has_add_msg = PyDict_Contains(cb_dict, nameStr);
+				PyObject *add_message;
+				if(has_add_msg){add_message = PyDict_GetItem(cb_dict, nameStr); }
 				Py_DECREF(nameStr);
 				PyObject* runMethod = PyObject_GetAttrString(cur, "run");
 				if(!runMethod){
 					printf("Couldn't get the run method...\n");
 					PyErr_Print();
 				}else{
-					pthread_create(&tmp_thread->thread, NULL, run_plugin, (void*)runMethod);
+					if(has_add_msg){
+						struct listener_args largs = { &(tmp_thread->mutex), &(tmp_thread->cond), tmp_thread->name, add_message };
+						struct run_args to_pass = { &largs, runMethod, &(tmp_thread->listener_thread) };
+						pthread_create(&tmp_thread->thread, NULL, run_plugin, &to_pass);
+					}
+					else{
+						struct run_args to_pass = { NULL, runMethod, NULL };
+						pthread_create(&tmp_thread->thread, NULL, run_plugin, &to_pass);
+					}
 				
 				}
 				thread_container_add(result, tmp_thread);

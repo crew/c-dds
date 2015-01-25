@@ -1,3 +1,4 @@
+#include <string.h>
 #include "dds_io.h"
 //PASSED MEMCHECK (BY EYE) ALL POINTERS MUST HAVE BEEN FREED
 int dorecv(dds_sock s, char* buf, int amt, int flags){
@@ -183,7 +184,91 @@ dds_sock make_dds_socket(){
 	printf("Done making socket %d ...\n", sock->fd);
 	return sock;
 }
+/*
+dds_sock make_local_dds_socket(void){
+	int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+	if(fd == -1){
+		perror("socket");
+		err_quit("Local socket creation failed");
+	}
+	dds_sock sock = malloc(sizeof(_dds_sock));
+	sock->bytes = 0;
+	sock->data = NULL;
+	sock->msgs = 0;
+	sock->fd = fd;
+	return sock;
+}
 
+dds_sock get_local_connection(void){
+	int err;
+	dds_sock sock;
+	struct sockaddr_un address;
+	sock = make_local_dds_socket();
+	address.sun_family = AF_UNIX;
+	strcpy(address.sun_path, "dds_local_socket");
+	int addr_size = sizeof(address);
+	err = connect(sock->fd, (struct sockaddr *)&address, addr_size);
+	if(err == -1){
+		perror("Could not get local connection");
+		return NULL;
+	}
+	return sock;
+}
+
+dds_sock make_local_connection(void){
+	struct sockaddr_un sockmain;
+	struct sockaddr_un sockpymod;
+	dds_sock sock = make_local_dds_socket();
+	unlink("dds_local_socket");
+	sockmain.sun_family = AF_UNIX;
+	strcpy(sockmain.sun_path, "dds_local_socket");
+	int servlen = sizeof(sockmain);
+	bind(sock->fd, (struct sockaddr*)&sockmain, servlen);
+	listen(sockmain, 3);
+
+
+}
+*/
+#define DDS_PIPE "../bin/.dds_pipe"
+int setup_pipe(void){
+	int fd;
+	mknod(DDS_PIPE, S_IFIFO | 0666, 0);
+	fd = open(DDS_PIPE, O_WRONLY | O_NDELAY);
+	return fd;
+}
+void write_to_pipe(char *to_write){
+	int num;
+	int fd = setup_pipe();
+	if(fd == -1){ return; }
+	if((num = write(fd,to_write,strlen(to_write))) == -1){
+		perror("write");
+	}
+}
+int open_pipe(void){
+	int fd;
+	mknod(DDS_PIPE, S_IFIFO | 0666, 0);
+	fd = open(DDS_PIPE, O_RDONLY | O_NDELAY);
+	return fd;
+}
+char *read_from_pipe(void){
+	char raw[4098];
+	int fd = open_pipe();
+	if(fd == -1){ return NULL; }
+	int num = read(fd, raw, 4098);
+	do {
+		if(num == -1){
+			perror("read");
+			return NULL;
+		}
+		else {
+			raw[num] = '\0';
+			char *ret = malloc(num + 1);
+			strcpy(ret,raw);
+			return ret;
+		}
+	} while (num > 0);
+	return NULL;
+}
 dds_sock open_connection(char* addr, char* port){
 	printf("Attempting to connect to %s:%s\n", addr, port);
 	int err;
