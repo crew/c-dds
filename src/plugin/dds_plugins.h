@@ -14,7 +14,9 @@
 
 #define PLUGINS_FOLDER "Plugins."
 #define PLUGINS_PATH "Plugins."
-struct listener_args { pthread_mutex_t* mtx; pthread_cond_t* cond; char* name; PyObject *add_msg_method; };
+//                      Mutex (Deprecated)    Condition Flag       Plugin Name  Main Thread State    addMessage() Pointer
+struct listener_args { pthread_mutex_t* mtx; pthread_cond_t* cond; char* name; PyThreadState *mts; PyObject *add_msg_method; };
+//                   To Pass to Listener      Needed by run func   pthread for Listener
 struct run_args { struct listener_args largs; PyObject *others; pthread_t* listener_t;};
 typedef struct _plugin_thread{
 	char name[64];

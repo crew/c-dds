@@ -27,6 +27,7 @@ plugin_thread* make_plugin_thread(char* name){
 	}
 	pthread_mutex_init(&(tmp->mutex), NULL);
 	pthread_cond_init(&(tmp->cond),NULL);
+	printf("Adding Listener Flag for %s to Dictionary.\n",name);
 	dict_put(listener_flags,name,(void*)(&(tmp->cond)));
 	return tmp;
 }
@@ -115,8 +116,8 @@ PyObject* make_callback_dict(obj_list plugin_list){
 		}
 		printf("Does it have the __call__ attribute %d\n", PyObject_HasAttrString(cur_plugin_write, "__call__"));
 		PyDict_SetItem(dict, plugin_name, cur_plugin_write);
-		Py_DECREF(plugin_name);
-		Py_DECREF(cur_plugin_write);
+		//Py_DECREF(plugin_name);
+		//Py_DECREF(cur_plugin_write);
 		index++;
 	}
 	return dict;
@@ -151,6 +152,7 @@ void give_callback_registration_oppertunity(PyObject* plugin, PyObject* call_bac
 void send_plugin_message(char* name, Dict* msg){
 	if(dict_has_key(listener_flags,name)){
 		while(dict_has_key(msg_queue,name)){}
+		printf("Message queued for plugin %s\n", name);
 		dict_put(msg_queue,DYN_STR(name),msg);
 		pthread_cond_signal((pthread_cond_t*)dict_get_val(listener_flags,name));
 	}
@@ -158,14 +160,30 @@ void send_plugin_message(char* name, Dict* msg){
 
 void* message_listener(void* rawargs){
 	struct listener_args args = *(struct listener_args*)rawargs;
+	//PyEval_AcquireLock();
+	// Main interpreter state
+	//PyInterpreterState *mis = args.mts->interp;
+	//PyThreadState *this_thread_state = PyThreadState_New(mis);
+	//PyEval_ReleaseLock();
 	while(1) {
 		pthread_cond_wait(args.cond, args.mtx);
+		//PyEval_AcquireLock();
+		//PyThreadState_Swap(this_thread_state);
+		//do Py_BEGIN_ALLOW_THREADS
 		PyObject *msg_tuple = PyTuple_New(1);
 		PyTuple_SetItem(msg_tuple,0,(parse_dict_to_pydict(dict_get_val(msg_queue,args.name))));
-		PyGILState_STATE gil = PyGILState_Ensure();
-		PyObject_Call(args.add_msg_method, msg_tuple, NULL);
-		PyGILState_Release(gil);
+		printf("Sending message to %s: ", args.name); 
+		PyObject_Print(PyTuple_GetItem(msg_tuple,0), stdout, 0);
+		printf("\n");
+		//PyGILState_STATE gil = PyGILState_Ensure();
+		printf("Result:");
+		PyObject_Print(PyObject_Call(args.add_msg_method, msg_tuple, NULL), stdout, 0);
+		printf("\n");
+		//PyGILState_Release(gil);
+		//PyThreadState_Swap(NULL);
+		//PyEval_ReleaseLock();
 		Py_DECREF(msg_tuple);
+		//Py_END_ALLOW_THREADS while(0);
 		dict_remove_entry(msg_queue,args.name);
 	}
 }
@@ -174,7 +192,7 @@ void* message_listener(void* rawargs){
 void* run_plugin(void* rawargs){
 	struct run_args args = *(struct run_args*)rawargs;
 	//Py_Initialize();
-	PyGILState_STATE gil = PyGILState_Ensure();
+	//PyGILState_STATE gil = PyGILState_Ensure();
 	if(args.listener_t){
 		struct listener_args to_pass = args.largs;
 		pthread_create(args.listener_t,NULL, message_listener, &to_pass);
@@ -184,7 +202,7 @@ void* run_plugin(void* rawargs){
 	PyObject_Call(runMethod, mt_tuple, NULL);
 	Py_DECREF(mt_tuple);
 	Py_DECREF(runMethod);
-	PyGILState_Release(gil);
+	//PyGILState_Release(gil);
 	pthread_exit(0);
 }
 //Returns an array of all the threads that are running....
@@ -194,7 +212,8 @@ thread_container* init_dds_python(Dict* config){
 	setenv("PYTHONPATH", "..", 0);
 	Py_Initialize();
 	PyEval_InitThreads();
-	PyGILState_STATE gil = PyGILState_Ensure();
+	PyThreadState *main_thread_state = PyThreadState_Get();
+	//PyGILState_STATE gil = PyGILState_Ensure();
 	if(dict_has_key(config, "plugins")){
 		char* val = dict_get_val(config, "plugins");
 
@@ -253,7 +272,7 @@ thread_container* init_dds_python(Dict* config){
 				}else{
 				//	PyGILState_Release(gil);
 					if(has_add_msg){
-						struct listener_args largs = { &(tmp_thread->mutex), &(tmp_thread->cond), tmp_thread->name, add_message };
+						struct listener_args largs = { &(tmp_thread->mutex), &(tmp_thread->cond), tmp_thread->name, main_thread_state, add_message };
 						struct run_args to_pass = { largs, runMethod, &(tmp_thread->listener_thread) };
 						tmp_thread->rargs = malloc(sizeof(to_pass));
 						memcpy(tmp_thread->rargs,&to_pass,sizeof(to_pass));
@@ -279,7 +298,7 @@ thread_container* init_dds_python(Dict* config){
 		Py_DECREF(cb_dict);
 		del_object_list(plugin_list);
 		PyEval_ReleaseLock();
-		PyGILState_Release(gil);
+		//PyGILState_Release(gil);
 		return result;
 	}
 }
