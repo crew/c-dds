@@ -1,5 +1,7 @@
 
 #include "dds_plugins.h"
+#define POBJ_NULL_CHECK(obj_name) if(!obj_name){PyErr_Print();}
+#define NULL_CHECK(obj_name) if(!obj_name){printf("%s was null...\n",#obj_name);}
 Dict* listener_flags;
 Dict* msg_queue;
 
@@ -27,6 +29,7 @@ plugin_thread* make_plugin_thread(char* name){
 	}
 	pthread_mutex_init(&(tmp->mutex), NULL);
 	pthread_cond_init(&(tmp->cond),NULL);
+	tmp->listener_thread = NULL;//Need this ? 
 	printf("Adding Listener Flag for %s to Dictionary.\n",name);
 	dict_put(listener_flags,name,(void*)(&(tmp->cond)));
 	return tmp;
@@ -95,22 +98,25 @@ PyObject* make_callback_dict(obj_list plugin_list){
 			PyErr_Print();
 		}
 		PyObject* getName = PyObject_GetAttrString(cur, "getName");
-		if(!getName){
+		NULL_CHECK(getName);
+		/*if(!getName){
 			printf("Couldn't get the getName method...\n");
 			PyErr_Print();
-		}
+		}*/
 		PyObject* plugin_name = PyObject_Call(getName, tuple, NULL);
-		if(!plugin_name){
+		NULL_CHECK(plugin_name);
+		/*if(!plugin_name){
 			printf("Couldn't call the getName method...\n");
 			PyErr_Print();
-		}
+		}*/
 		Py_DECREF(tuple);
 		Py_DECREF(getName);
 		PyObject* cur_plugin_write = PyObject_GetAttrString(cur, "addMessage");
-		if(!cur_plugin_write){
+		NULL_CHECK(cur_plugin_write);
+		/*if(!cur_plugin_write){
 			printf("Couldn't get addMessage method...\n");
 			PyErr_Print();
-		}
+		}*/
 		if(!PyMethod_Check(cur_plugin_write) && !PyFunction_Check(cur_plugin_write)){
 			printf("Not function or method...\n");
 		}
@@ -122,18 +128,20 @@ PyObject* make_callback_dict(obj_list plugin_list){
 	}
 	return dict;
 }
-void give_callback_registration_oppertunity(PyObject* plugin, PyObject* call_back_dict){
+void setup_plugin(PyObject* plugin){
 	PyObject* setup;
 	setup = PyObject_GetAttrString(plugin, "setup");
-	if(!setup){
+	NULL_CHECK(setup);
+	/*if(!setup){
 		printf("Couldn't get setup method...\n");
 		PyErr_Print();
-	}
+	}*/
 	PyObject* arg_tuple = PyTuple_New((Py_ssize_t)1);
-	if(!arg_tuple){
+	NULL_CHECK(arg_tuple);
+	/*if(!arg_tuple){
 		printf("Couldn't make the argument tuple...\n");
 		PyErr_Print();
-	}
+	}*/
 	PyTuple_SetItem(arg_tuple, 0, Py_None);
 	//PyTuple_SetItem(arg_tuple, 0, call_back_dict);
 	//TODO setup runtimeVars, what are these even?
@@ -177,7 +185,10 @@ void* message_listener(void* rawargs){
 		printf("\n");
 		//PyGILState_STATE gil = PyGILState_Ensure();
 		printf("Result:");
-		PyObject_Print(PyObject_Call(args.add_msg_method, msg_tuple, NULL), stdout, 0);
+		//I'm pretty sure Call always returns a new reference
+		PyObject* result = PyObject_Call(args.add_msg_method, msg_tuple, NULL);
+		PyObject_Print(result, stdout, 0);
+		Py_DECREF(result);
 		printf("\n");
 		//PyGILState_Release(gil);
 		Py_DECREF(msg_tuple);
@@ -203,6 +214,7 @@ void* run_plugin(void* rawargs){
 	PyObject_Call(runMethod, mt_tuple, NULL);
 	Py_DECREF(mt_tuple);
 	Py_DECREF(runMethod);
+	pthread
 	//PyGILState_Release(gil);
 	pthread_exit(0);
 }
@@ -233,7 +245,7 @@ thread_container* init_dds_python(Dict* config){
 		int len = obj_list_len(plugin_list);
 		PyObject* cb_dict = make_callback_dict(plugin_list);
 		for(;index < len;index++){
-			give_callback_registration_oppertunity(obj_list_get(plugin_list, index), cb_dict);
+			setup_plugin(obj_list_get(plugin_list, index));
 		}
 		thread_container* result = make_thread_container();
 		PyObject* mt_tuple = PyTuple_New(0);
@@ -262,6 +274,7 @@ thread_container* init_dds_python(Dict* config){
 				}
 				Py_DECREF(getName);
 				plugin_thread* tmp_thread = make_plugin_thread(PyString_AS_STRING(nameStr));
+				//TODO i would like to get rid of the cb_dict, we can do this in a better way...
 				int has_add_msg = PyDict_Contains(cb_dict, nameStr);
 				PyObject *add_message;
 				if(has_add_msg){add_message = PyDict_GetItem(cb_dict, nameStr); }

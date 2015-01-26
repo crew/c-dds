@@ -133,6 +133,7 @@ int main(int argc, char** argv){
 	strcpy(global_args->cur_url,(char*)dict_get_val(config, "init_page"));
 	global_args->view = make_view(global_args->cur_url);
 	printf("Initial display is %s\n", global_args->cur_url);
+	//TODO Why no hold return value??? 
 	init_dds_python(config);
 
 	global_sock = NULL;
@@ -183,6 +184,7 @@ int main(int argc, char** argv){
 				release_dds_sem(lock);
 				time(&start_measure);
 			}
+			//Why doesn't this work?
 			//read_db(plugins,512);
 			while(get_msg_count(plugins) > 0){
 				char *from_module = malloc(get_nxt_msg_size(plugins));
