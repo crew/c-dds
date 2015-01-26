@@ -160,15 +160,15 @@ void send_plugin_message(char* name, Dict* msg){
 
 void* message_listener(void* rawargs){
 	struct listener_args args = *(struct listener_args*)rawargs;
-	//PyEval_AcquireLock();
+	PyEval_AcquireLock();
 	// Main interpreter state
-	//PyInterpreterState *mis = args.mts->interp;
-	//PyThreadState *this_thread_state = PyThreadState_New(mis);
-	//PyEval_ReleaseLock();
+	PyInterpreterState *mis = args.mts->interp;
+	PyThreadState *this_thread_state = PyThreadState_New(mis);
+	PyEval_ReleaseLock();
 	while(1) {
 		pthread_cond_wait(args.cond, args.mtx);
-		//PyEval_AcquireLock();
-		//PyThreadState_Swap(this_thread_state);
+		PyEval_AcquireLock();
+		PyThreadState_Swap(this_thread_state);
 		//do Py_BEGIN_ALLOW_THREADS
 		PyObject *msg_tuple = PyTuple_New(1);
 		PyTuple_SetItem(msg_tuple,0,(parse_dict_to_pydict(dict_get_val(msg_queue,args.name))));
@@ -180,9 +180,10 @@ void* message_listener(void* rawargs){
 		PyObject_Print(PyObject_Call(args.add_msg_method, msg_tuple, NULL), stdout, 0);
 		printf("\n");
 		//PyGILState_Release(gil);
-		//PyThreadState_Swap(NULL);
-		//PyEval_ReleaseLock();
 		Py_DECREF(msg_tuple);
+		PyThreadState_Swap(NULL);
+		PyEval_ReleaseLock();
+		//Py_DECREF(msg_tuple);
 		//Py_END_ALLOW_THREADS while(0);
 		dict_remove_entry(msg_queue,args.name);
 	}
