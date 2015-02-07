@@ -24,7 +24,9 @@ CC=gcc $(INCLUDEPY) $(DEFCONFIGPATH) $(DEFKEYPATH) $(ARCH)
 
 
 
-all : $(BUILDDIR)
+all : 
+	make clean
+	make $(BUILDDIR)
 	make core	
 	make plugins
 	$(CC) -I../$(BUILDDIR) $(BUILDDIR)/* /usr/lib/liblua5.1.dll.a -o $(BUILDDIR)/$(OUT) $(ENDARGS)

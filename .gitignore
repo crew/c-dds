@@ -3,3 +3,4 @@
 # These are only test binaries, so they can be ignored
 a.out
 *~
+src/build/*
