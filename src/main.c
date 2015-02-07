@@ -14,6 +14,7 @@
 #include "parseJSON.h"
 #include "dds_slides.h"
 #include "dds_globals.h"
+#include "plugin/dds_plugins.h"
 //#define KEY_PATH "/home/pi/c-dds/src/main.c"
 #define MAX_URL_LEN 1024
 
@@ -122,8 +123,11 @@ static char* get_hello_msg(Dict* config){
 }
 //TODO connect termination signal to free ALL the shit
 int main(int argc, char** argv){
-	dds_sem lock = dds_open_sem("/dds_gtk_sem", 1);	
-	Dict* config = readConfig(CONFIG_PATH);
+	dds_sem lock; //= dds_open_sem("/dds_gtk_sem", 1);	
+	Dict* config = readConfig(CONFIG_PATH);	
+	dump_dict(config);
+	init_plugins(config);
+	exit(0);
 	timeout_args targs;
 	global_args = &targs;
  	global_args->cur_url = (char*)make_shmmem();
@@ -132,6 +136,7 @@ int main(int argc, char** argv){
 	strcpy(global_args->cur_url,(char*)dict_get_val(config, "init_page"));
 	global_args->view = make_view(global_args->cur_url);
 	printf("Initial display is %s\n", global_args->cur_url);
+
 
 
 	global_sock = NULL;
