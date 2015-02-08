@@ -1,6 +1,8 @@
 #ifndef PARSE_JSON_H
 #define PARSE_JSON_H
 
+#define _USE_XOPEN
+#define _GNU_SOURCE 1
 #ifndef cJSON__h
 #include "cJSON.h"
 #endif

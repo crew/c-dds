@@ -1,6 +1,7 @@
 #include <pthread.h>
 #include <sys/ipc.h>
 #include <unistd.h>
+#include <sys/wait.h>
 #include <sys/shm.h>
 #include <time.h>
 #include <signal.h>
@@ -235,7 +236,7 @@ int main(int argc, char** argv){
 						printf("Link was null...\n");
 						continue;
 					}
-					printf("Adding slide [%s,%d,%d]\n",link_d->value, id_d->value, dur_d->value);
+					printf("Adding slide [%s,%d,%d]\n",(char*)link_d->value, (int)id_d->value, (int)dur_d->value);
 					add_slide(slides,make_slide(link_d->value, *((int*)dur_d->value), *((int*)id_d->value)));
 				}else if(action == EDIT_SLIDE){
 					printf("Editing a slide!\n");
@@ -271,7 +272,7 @@ int main(int argc, char** argv){
 						printf("ID in delete was null...\n");
 						continue;
 					}
-					printf("Deleting slide with id %d\n",id_m->value);
+					printf("Deleting slide with id %d\n",(int)id_m->value);
 					delete_slide_with_id(slides, *((int*)id_m->value));
 				}else if(action == TERMINATE){
 					printf("Recieved the TERMINATE action... terminating...\n");

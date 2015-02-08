@@ -49,4 +49,5 @@ int release_dds_sem(dds_sem sem){
 		return 0;
 
 	}
+	return 1;
 }

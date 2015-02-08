@@ -8,7 +8,7 @@ SRCS=main.c dds_globals.c dict.c readcfg.c parseJSON.c cJSON.c gtkWindow.c dds_i
 ENDARGS=-lrt -lm -lc $(PKGS)
 OBJS=$(SRCS:.c=.o)
 SHOBJS=$(SHSRCS:.c=.o)
-INCLUDEPY=-I/usr/include/python2.7 -lpython2.7
+INCLUDEPY=-I/usr/include/lua5.1 -I/usr/include/python2.7 -lpython2.7 -llua5.1
 DEFCONFIGPATH=-DCONFIG_PATH=\"${PWD}/../Configs/PIE.conf\"
 DEFKEYPATH=-DKEY_PATH=\"$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))/main.c\"
 PLUGSRC=plugin
@@ -20,7 +20,7 @@ else
 	ARCH=
 endif
 	
-CC=gcc $(INCLUDEPY) $(DEFCONFIGPATH) $(DEFKEYPATH) $(ARCH)
+CC=clang -std=gnu11 -Wno-unused-parameter $(INCLUDEPY) $(DEFCONFIGPATH) $(DEFKEYPATH) $(ARCH)
 
 
 
@@ -29,13 +29,14 @@ all :
 	make $(BUILDDIR)
 	make core	
 	make plugins
-	$(CC) -I../$(BUILDDIR) $(BUILDDIR)/* /usr/lib/liblua5.1.dll.a -o $(BUILDDIR)/$(OUT) $(ENDARGS)
+	$(CC) -I../$(BUILDDIR) $(BUILDDIR)/* -o $(BUILDDIR)/$(OUT) $(ENDARGS)
 
 shared : $(SHOBJS)
 	$(CC) $(SHOBJS) -shared -o $(BUILDDIR)/libdds.so $(ENDARGS)
 
-plugins : 
-	$(MAKE) -C $(PLUGSRC)
+plugins :
+	cd $(PLUGSRC) && make
+	#$(MAKE) -C $(PLUGSRC)
 
 debug : debug_obj
 	make debug_shared

@@ -1,3 +1,4 @@
+#include "parseJSON.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
@@ -8,7 +9,7 @@
 #include "dds_globals.h"
 #include "cJSON.h"
 #include "dict.h"
-#include "parseJSON.h"
+
 
 
 SLIDE_ACTION parse_action(char *str) {
@@ -534,7 +535,7 @@ cJSON *dict_to_cJSON(Dict *d){
 }
 
 socket_message *json_to_message(char *str) {
-    cJSON *input, *content;
+    cJSON *input;
     input = cJSON_Parse(str);
     Dict *input_dict = cJSON_to_dict(input->child);
     if(dict_get_type(input_dict,"content") == T_POINT_CHAR){
@@ -543,10 +544,10 @@ socket_message *json_to_message(char *str) {
     	dict_put(input_dict,DYN_STR("content"),cJSON_to_dict(ctemp->child));
 	cJSON_Delete(ctemp);
     }
-    content = cJSON_GetObjectItem(input, "content");
+    /*content = cJSON_GetObjectItem(input, "content");
     if(content->type == cJSON_String){
     	content = cJSON_Parse(content->valuestring);
-    }
+    }*/
     socket_message_content *msg_c = (socket_message_content *) malloc(sizeof(socket_message_content));
     Dict* tmp = (Dict*)dict_get_val(input_dict, "content");
     if(dict_has_key(tmp, "actions")){
@@ -743,13 +744,4 @@ int main() {
     printf("back again:\n%s\n", message_to_json(sm));
 }*/
 /*
-#ifdef ___TEST_SUITES___
-
-/*
- * TEST SUITES
- */
-/*
-
-
-#endif
 */

@@ -11,8 +11,37 @@
 
 
 // ---------------
+static void stackDump (lua_State *L) {
+      int i;
+      int top = lua_gettop(L);
+      printf("Stack size %d\n", top);
+      for (i = 1; i <= top; i++) {  /* repeat for each level */
+        int t = lua_type(L, i);
+        switch (t) {
+    
+          case LUA_TSTRING:  /* strings */
+            printf("`%s'", lua_tostring(L, i));
+            break;
+    
+          case LUA_TBOOLEAN:  /* booleans */
+            printf(lua_toboolean(L, i) ? "true" : "false");
+            break;
+    
+          case LUA_TNUMBER:  /* numbers */
+            printf("%g", lua_tonumber(L, i));
+            break;
+    
+          default:  /* other values */
+            printf("%s", lua_typename(L, t));
+            break;
+    
+        }
+        printf("  ");  /* put a separator */
+      }
+      printf("\n");  /* end the listing */
+    }
 
-static int well_formed(const char *list, int *count){
+static int well_formed(char *list, int *count){
 	
 	#define outside(var, s) do{var = (var && s[0]!=',' && s[strlen(s)-1]!=',');}while(0);
 	int good = 1;
@@ -39,18 +68,20 @@ static char* path_to_plugin(const char *name){
 	return str;
 }
 static int init_plugin(char *name, lua_plugin *target, char* plugin_file){
-	printf("Init\n");
 	target->instance = luaL_newstate();
-	printf("Got an instance...\n");
 	luaL_openlibs(target->instance);
-	printf("open libs...\n");
+	printf("Attempting to load %s\n", plugin_file);
 	TEST(!luaL_loadfile(target->instance, plugin_file), "Couldn't load file for a plugin...");
-	printf("Load file...\n");
 	TEST(!lua_pcall(target->instance, 0, 0, 0), "Couldn't run plugin file...");
 	printf("globals ... \n");
 	lua_getglobal(target->instance, "name");
+	printf("Stackdump : \n");
+	stackDump(target->instance);
 	printf("Attempting to print...\n");
-	TEST(!lua_pcall(target->instance, 0, 0, 0), "Couldn't call name...");
+	TEST(!lua_pcall(target->instance, 0, 1, 0), "Couldn't call name...");
+	stackDump(target->instance);
+	ASSERT(lua_isstring(target->instance, -1), "It wasn't a string...")
+	printf("Got %s from plugin\n", lua_tostring(target->instance, -1));
 	printf("Done printing...\n");
 	return 1;
 		
@@ -109,5 +140,6 @@ lua_plugin_list *init_plugins(Dict *config){
 		iter++;
 	}
 	printf("Done loading plugins...\n");
+	return NULL;
 }
 

@@ -154,6 +154,7 @@ int close_connection(dds_sock sock){
 		return 0;
 	perror("close");
 	err_quit("Couldn't close socket fd...%d\n");
+	return 0;
 }
 int host_order(int i){
 	return ntohl(i);

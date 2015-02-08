@@ -4,3 +4,4 @@
 a.out
 *~
 src/build/*
+*.o

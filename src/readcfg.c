@@ -6,6 +6,8 @@
 Returns malloc'd memory containing the line from the file 
 or NULL if no more can be read
 */
+int add_split_to_dict(Dict*,FILE*);
+
 char* next_line(FILE* f){
 	char str[128];
 	char* p = fgets(str, sizeof(str), f);
