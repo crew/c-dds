@@ -1,8 +1,5 @@
 #include "dds_sem.h" 
 dds_sem dds_open_sem(const char* name, int value){
-	if(*name != '/'){
-		printf("WARNING: %s does not follow semaphore naming conventions...\n", name);
-	}
 	dds_sem dsem = (dds_sem)malloc(sizeof(_dds_sem));
 	if(strlen(name) > DDS_SEM_NAME_MAX){
 		printf("WARNING: dds_sem names cannot be longer then %d chars, truncating %s at %d chars...\n", DDS_SEM_NAME_MAX, name, DDS_SEM_NAME_MAX);
@@ -40,7 +37,7 @@ int try_dds_sem(dds_sem sem){
 		return 0;
 
 	}
-	return -1;
+	return -1;//TODO mistake?
 
 }
 int release_dds_sem(dds_sem sem){

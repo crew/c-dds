@@ -1,5 +1,5 @@
-function name ()
-	return "Dummy";
+function runPlugin()
+	for i=0,50 do
+		print(i);
+	end
 end
-
-print("I'm a dummy lua function\n");

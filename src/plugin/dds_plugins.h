@@ -11,6 +11,7 @@
 #define ASSERT(expr, str) do{if(!expr){PERR(str);}}while(0);
 #define PERR(str) do{fprintf(stderr, "Error: %s\n", str);exit(1);}while(0);
 typedef struct _dds_lua_plugin{
+	pthread_t thread;
 	char name[64];
 	lua_State *instance;
 }lua_plugin;

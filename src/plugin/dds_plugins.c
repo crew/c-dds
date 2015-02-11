@@ -6,9 +6,9 @@
 #include "dds_globals.h"
 #include "dict.h"
 #include "dds_plugins.h"
-
-
-
+#include "dds_plugin_api.h"
+#include "dds_sem.h"
+#include <pthread.h>
 
 // ---------------
 static void stackDump (lua_State *L) {
@@ -70,19 +70,12 @@ static char* path_to_plugin(const char *name){
 static int init_plugin(char *name, lua_plugin *target, char* plugin_file){
 	target->instance = luaL_newstate();
 	luaL_openlibs(target->instance);
-	printf("Attempting to load %s\n", plugin_file);
+	TEST(!luaL_loadfile(target->instance, PLUG_API_LUA), "Couldn't open dds_lua lib");
+	TEST(!lua_pcall(target->instance, 0, 0, 0), "Couldn't run dds_lua lib");
 	TEST(!luaL_loadfile(target->instance, plugin_file), "Couldn't load file for a plugin...");
 	TEST(!lua_pcall(target->instance, 0, 0, 0), "Couldn't run plugin file...");
-	printf("globals ... \n");
-	lua_getglobal(target->instance, "name");
-	printf("Stackdump : \n");
-	stackDump(target->instance);
-	printf("Attempting to print...\n");
-	TEST(!lua_pcall(target->instance, 0, 1, 0), "Couldn't call name...");
-	stackDump(target->instance);
-	ASSERT(lua_isstring(target->instance, -1), "It wasn't a string...")
-	printf("Got %s from plugin\n", lua_tostring(target->instance, -1));
-	printf("Done printing...\n");
+	init_api(target);
+	
 	return 1;
 		
 }
@@ -102,27 +95,35 @@ char* get_plugins_list_str(Dict* d){
 	return NULL;
 
 }
+//All plugins required to have a runPlugin
+void *run_plugin(void* args){
+	lua_plugin *p = (lua_plugin *)args;
+	lua_getglobal(p->instance, "runPlugin");
+	if(!lua_pcall(p->instance, 0, 0, 0)){
+		printf("Couldn't call runPlugin for plugin %s\n", p->name);
+		pthread_exit(NULL);
+	}
+	//TODO account for non-continuoues plugins
+	lua_getglobal(p->instance, "my_sem");
+	dds_sem s = (dds_sem)((int)lua_tonumber(p->instance, -1));
+	final_close_sem(s);
+	lua_close(p->instance);
+	pthread_exit(NULL);
+
+}
 lua_plugin_list *init_plugins(Dict *config){
 	printf("Initializing plugins...\n");
 	static char once = 0;
 	ASSERT(once++ == 0, "init_plugins was run more then once...") //We only run this once
-	printf("After assert\n");
 	lua_plugin_list plugins;
-	printf("After plugin list...\n");
-	dump_dict(config);
-	printf("After val\n");
 	char* plugins_list_str = get_plugins_list_str(config);
-	printf("Got %s as list\n", plugins_list_str);
 
 	int plugin_count = 0;
 	if(!well_formed(plugins_list_str, &plugin_count)){
-		printf("Inside wellformed...\n");
 		PERR("Bad plugin list in config file...")
 	}
-	printf("Blah1\n");	
 	plugins.num_plugins = plugin_count;
 	plugins.list = malloc(sizeof(lua_plugin) * plugin_count);
-	printf("Blah2\n");
 	lua_plugin *iter = plugins.list;
 
 
@@ -130,16 +131,15 @@ lua_plugin_list *init_plugins(Dict *config){
 	//TODO count tokens...
 	cur_plugin = strtok(plugins_list_str, ",");
 	while(cur_plugin){
-		printf("While\n");
 		char* file_name = path_to_plugin(cur_plugin);	
 		printf("Got filename %s\n", file_name);
 		TEST(init_plugin(cur_plugin, iter, file_name), "Failed to initialize plugin");
 		free(file_name);
-
+		pthread_create(&iter->thread, NULL, run_plugin, (void*)iter);
 		cur_plugin = strtok(NULL, ",");
 		iter++;
 	}
 	printf("Done loading plugins...\n");
-	return NULL;
+	return &plugins;
 }
 
